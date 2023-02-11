@@ -20,7 +20,12 @@ int repeat_time = 1, TOPK_THERSHOLD = 200, memory = 1e5;
 
 void ParseArgs(int argc, char** argv) {
 	options_description opts("Options");
-	opts.add_options()("fileName,f", value<string>()->required(), "file name")("sketchName,s", value<int>()->required(), "sketch name")("time,t", value<int>()->required(), "repeat time")("topk,k", value<int>()->required(), "topk")("memory,m", value<int>()->required(), "memory");
+	opts.add_options()
+		("fileName,f", value<string>()->required(), "file name")
+		("sketchName,s", value<int>()->required(), "sketch name")
+		("time,t", value<int>()->required(), "repeat time")
+		("topk,k", value<int>()->required(), "topk")
+		("memory,m", value<int>()->required(), "memory");
 	variables_map vm;
 
 	store(parse_command_line(argc, argv, opts), vm);
