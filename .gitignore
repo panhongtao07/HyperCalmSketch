@@ -3,6 +3,7 @@
 .vscode/
 .clang-format
 dst/
+draw/
 
 # Prerequisites
 *.d

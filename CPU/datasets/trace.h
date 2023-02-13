@@ -27,7 +27,7 @@ vector<pair<uint32_t, float>> loadCAIDA(const char *filename = "./CAIDA.dat") {
 
 vector<pair<uint32_t, float>>
 loadCRITEO(const char *filename = "./CRITEO.log") {
-  fprintf(stderr, "Open %s \n", filename);
+  printf("Open %s \n", filename);
   FILE *pf = fopen(filename, "rb");
   if (!pf) {
     printf("%s not found!\n", filename);
@@ -42,7 +42,6 @@ loadCRITEO(const char *filename = "./CRITEO.log") {
     sscanf(trace + 10, "%" SCNu64, &tkey);
     vec.push_back(pair<uint32_t, float>(tkey, ++ttime));
   }
-  fprintf(stderr, "Close %s \n", filename);
   fclose(pf);
   return vec;
 }

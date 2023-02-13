@@ -21,6 +21,7 @@ using namespace boost::program_options;
 string fileName;
 int sketchName;
 double BATCH_TIME, UNIT_TIME;
+bool verbose = false;
 int repeat_time = 1, TOPK_THERSHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 5e5;
 
 void ParseArgs(int argc, char** argv) {
@@ -33,7 +34,8 @@ void ParseArgs(int argc, char** argv) {
 		("batch_size,l", value<int>()->required(), "batch size threshold")
 		("memory,m", value<int>()->required(), "memory")
 		("batch_time,b", value<double>()->required(), "batch time")
-		("unit_time,u", value<double>()->required(),"unit time");
+		("unit_time,u", value<double>()->required(),"unit time")
+		("verbose,V", "show verbose output");
 	variables_map vm;
 
 	store(parse_command_line(argc, argv, opts), vm);
@@ -65,6 +67,8 @@ void ParseArgs(int argc, char** argv) {
 		BATCH_TIME = vm["batch_time"].as<double>();
 	if (vm.count("unit_time"))
 		UNIT_TIME = vm["unit_time"].as<double>();
+	if (vm.count("verbose"))
+		verbose = true;
 }
 
 int main(int argc, char** argv) {

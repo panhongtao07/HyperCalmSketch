@@ -23,6 +23,7 @@ using namespace boost::program_options;
 string fileName;
 int sketchName;
 double BATCH_TIME, UNIT_TIME;
+bool verbose = false;
 int repeat_time = 1, TOPK_THERSHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 1e4;
 
 void ParseArgs(int argc, char** argv) {
@@ -35,7 +36,8 @@ void ParseArgs(int argc, char** argv) {
 		("batch_size,l", value<int>()->required(), "batch size threshold")
 		("memory,m", value<int>()->required(), "memory")
 		("batch_time,b", value<double>()->required(), "batch time")
-		("unit_time,u", value<double>()->required(),"unit time");
+		("unit_time,u", value<double>()->required(),"unit time")
+		("verbose,V", "show verbose output");
 	variables_map vm;
 
 	store(parse_command_line(argc, argv, opts), vm);
@@ -67,6 +69,8 @@ void ParseArgs(int argc, char** argv) {
 		BATCH_TIME = vm["batch_time"].as<double>();
 	if (vm.count("unit_time"))
 		UNIT_TIME = vm["unit_time"].as<double>();
+	if (vm.count("verbose"))
+		verbose = true;
 }
 
 int main(int argc, char** argv) {
@@ -77,8 +81,10 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto ans = groundtruth(input, BATCH_TIME, UNIT_TIME,
+	auto res = groundtruth(input, BATCH_TIME, UNIT_TIME,
 						   TOPK_THERSHOLD, BATCH_SIZE_LIMIT).first;
+	auto ans = move(res.first);
+	int tot = move(res.second);
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
 		puts("Test Hyper Bloom filter");
@@ -121,9 +127,18 @@ int main(int argc, char** argv) {
 	clock_gettime(CLOCK_MONOTONIC, &end_time);
 	uint64_t time_ns = uint64_t(end_time.tv_sec - start_time.tv_sec) * 1000000000 + (end_time.tv_nsec - start_time.tv_nsec);
 	printf("---------------------------------------------\n");
+	auto recall = 1.0 * corret_count / ans.size() / repeat_time;
+	auto precision = 1.0 * corret_count / tot_our_size / repeat_time;
 	printf("Results:\n");
 	printf("Average Speed:\t %f M/s\n", 1e3 * input.size() * repeat_time / time_ns);
-	printf("Recall Rate:\t %f\n", 1.0 * corret_count / ans.size() / repeat_time);
-	printf("Percision Rate:\t %f\n", 1.0 * corret_count / tot_our_size / repeat_time);
+	printf("Recall Rate:\t %f\n", recall);
+	printf("Precision Rate:\t %f\n", precision);
+	if (verbose) {
+		auto f1 = recall || precision ? 2 * recall * precision / (recall + precision) : 0.;
+		printf("Relative Relative Rate: %f\n", precision * tot / ans.size());
+		printf("F1 Score:\t %f\n", f1);
+		printf("Detail:\t %d correct, %d wrong, %d missed\n",
+				corret_count, tot_our_size - corret_count, int(ans.size()) - corret_count);
+	}
 	printf("---------------------------------------------\n");
 }

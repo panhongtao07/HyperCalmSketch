@@ -38,7 +38,7 @@ vector<pair<pair<int, int16_t>, int>> get_topk(
 	return q1;
 }
 
-pair<vector<int>, vector<pair<pair<int, int16_t>, int>>> groundtruth(
+pair<pair<vector<int>, int>, vector<pair<pair<int, int16_t>, int>>> groundtruth(
 	const vector<pair<uint32_t, float>>& input,
 	double& BATCH_TIME_THRESHOLD,
 	double& UNIT_TIME,
@@ -104,7 +104,8 @@ pair<vector<int>, vector<pair<pair<int, int16_t>, int>>> groundtruth(
 	printf("# filtered batches %d\n", filtered_cnt);
 	printf("Freq. of the hottest item = %d\n", mx_cnt);
 
-	return {batches, get_topk(input, batches, UNIT_TIME, TOPK_THRESHOLD)};
+	return {{batches, batches.size() + filtered_cnt},
+			get_topk(input, batches, UNIT_TIME, TOPK_THRESHOLD)};
 }
 
 #undef _START
