@@ -23,7 +23,7 @@ using namespace boost::program_options;
 string fileName;
 int sketchName;
 double BATCH_TIME, UNIT_TIME;
-int repeat_time = 1, TOPK_THERSHOLD = 200, memory = 1e4;
+int repeat_time = 1, TOPK_THERSHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 1e4;
 
 void ParseArgs(int argc, char** argv) {
 	options_description opts("Options");
@@ -32,6 +32,7 @@ void ParseArgs(int argc, char** argv) {
 		("sketchName,s", value<int>()->required(), "sketch name")
 		("time,t", value<int>()->required(), "repeat time")
 		("topk,k", value<int>()->required(), "topk")
+		("batch_size,l", value<int>()->required(), "batch size threshold")
 		("memory,m", value<int>()->required(), "memory")
 		("batch_time,b", value<double>()->required(), "batch time")
 		("unit_time,u", value<double>()->required(),"unit time");
@@ -58,6 +59,8 @@ void ParseArgs(int argc, char** argv) {
 		repeat_time = vm["time"].as<int>();
 	if (vm.count("topk"))
 		TOPK_THERSHOLD = vm["topk"].as<int>();
+	if (vm.count("batch_size"))
+		BATCH_SIZE_LIMIT = vm["batch_size"].as<int>();
 	if (vm.count("memory"))
 		memory = vm["memory"].as<int>();
 	if (vm.count("batch_time"))
@@ -74,7 +77,8 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto ans = groundtruth(input, BATCH_TIME, UNIT_TIME, TOPK_THERSHOLD).first;
+	auto ans = groundtruth(input, BATCH_TIME, UNIT_TIME,
+						   TOPK_THERSHOLD, BATCH_SIZE_LIMIT).first;
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
 		puts("Test Hyper Bloom filter");
