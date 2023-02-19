@@ -24,7 +24,7 @@ string fileName;
 int sketchName;
 double BATCH_TIME, UNIT_TIME;
 bool verbose = false;
-int repeat_time = 1, TOPK_THERSHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 1e4;
+int repeat_time = 1, BATCH_SIZE_LIMIT = 1, memory = 1e4;
 
 void ParseArgs(int argc, char** argv) {
 	options_description opts("Options");
@@ -32,7 +32,7 @@ void ParseArgs(int argc, char** argv) {
 		("fileName,f", value<string>()->required(), "file name")
 		("sketchName,s", value<int>()->required(), "sketch name")
 		("time,t", value<int>()->required(), "repeat time")
-		("topk,k", value<int>()->required(), "topk")
+		("topk,k", value<int>()->required(), "topk, unused")
 		("batch_size,l", value<int>()->required(), "batch size threshold")
 		("memory,m", value<int>()->required(), "memory")
 		("batch_time,b", value<double>()->required(), "batch time")
@@ -59,8 +59,6 @@ void ParseArgs(int argc, char** argv) {
 	}
 	if (vm.count("time"))
 		repeat_time = vm["time"].as<int>();
-	if (vm.count("topk"))
-		TOPK_THERSHOLD = vm["topk"].as<int>();
 	if (vm.count("batch_size"))
 		BATCH_SIZE_LIMIT = vm["batch_size"].as<int>();
 	if (vm.count("memory"))
@@ -81,8 +79,7 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto res = groundtruth(input, BATCH_TIME, UNIT_TIME,
-						   TOPK_THERSHOLD, BATCH_SIZE_LIMIT).first;
+	auto res = groundtruth(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT);
 	auto ans = move(res.first);
 	int tot = move(res.second);
 	printf("---------------------------------------------\n");

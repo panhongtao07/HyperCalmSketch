@@ -22,7 +22,7 @@ string fileName;
 int sketchName;
 double BATCH_TIME, UNIT_TIME;
 bool verbose = false;
-int repeat_time = 1, TOPK_THERSHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 5e5;
+int repeat_time = 1, TOPK_THRESHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 5e5;
 
 void ParseArgs(int argc, char** argv) {
 	options_description opts("Options");
@@ -58,7 +58,7 @@ void ParseArgs(int argc, char** argv) {
 	if (vm.count("time"))
 		repeat_time = vm["time"].as<int>();
 	if (vm.count("topk"))
-		TOPK_THERSHOLD = vm["topk"].as<int>();
+		TOPK_THRESHOLD = vm["topk"].as<int>();
 	if (vm.count("batch_size"))
 		BATCH_SIZE_LIMIT = vm["batch_size"].as<int>();
 	if (vm.count("memory"))
@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	printf("---------------------------------------------\n");
-	auto ans = groundtruth(input, BATCH_TIME, UNIT_TIME,
-						   TOPK_THERSHOLD, BATCH_SIZE_LIMIT).second;
+	auto batches = groundtruth(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT).first;
+	auto ans = groundtruth_topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
 	printf("BATCH_TIME = %f\n", BATCH_TIME);
+	printf("UNIT_TIME = %f\n", UNIT_TIME);
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
 		puts("Test HyperCalm");
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 			auto ttime = pr.second;
 			sketch.insert(tkey, ttime);
 		}
-		auto our = sketch.get_top_k(TOPK_THERSHOLD);
+		auto our = sketch.get_top_k(TOPK_THRESHOLD);
 		sort(our.begin(), our.end());
 		int j = 0;
 		for (auto x: our) {

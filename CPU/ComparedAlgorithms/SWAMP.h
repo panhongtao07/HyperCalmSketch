@@ -14,7 +14,6 @@ public:
 			tot(memory / (sizeof(key_t) * 2 + sizeof(time_t) + sizeof(int) * 2)),
 			time_threshold(time_threshold_),
 			last_time(tot + 5) {
-        fprintf(stderr, "SWAMP Size = %d\n", tot);
 		q = new key_t[tot];
 		head = 1;
 		tail = 0;

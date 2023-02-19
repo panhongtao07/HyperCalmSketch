@@ -42,7 +42,7 @@ vector<pair<uint32_t, float>> loaddata(char* filename) {
 }
 void check_css(char* filename, int sz, int cachesize) {
 	vector<pair<uint32_t, float>> input = loaddata(filename);
-	groundtruth(input, BATCH_TIME_THRESHOLD, UNIT_TIME, TOPK_THRESHOLD);
+	groundtruth(input, BATCH_TIME_THRESHOLD, UNIT_TIME, 1);
 	puts("(* Each item is a memory access request.)");
 	//    puts("read over");
 	printf("Finish reading %s\n", filename);

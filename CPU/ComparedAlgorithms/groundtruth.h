@@ -8,7 +8,7 @@
 	#define REC_POS _START
 #endif
 
-vector<pair<pair<int, int16_t>, int>> get_topk(
+vector<pair<pair<int, int16_t>, int>> groundtruth_topk(
 	const vector<pair<uint32_t, float>>& input,
 	const vector<int>& batches,
 	double UNIT_TIME,
@@ -27,7 +27,11 @@ vector<pair<pair<int, int16_t>, int>> get_topk(
 	vector<pair<int, pair<int, int16_t>>> q;
 	for (auto [pr, c] : cnt)
 		q.push_back({-c, pr});
-	assert(q.size() >= TOPK_THRESHOLD);
+	if (q.size() < TOPK_THRESHOLD) {
+		printf("Not enough periodical batches: %d < %d\n", int(q.size()), TOPK_THRESHOLD);
+		printf("Please increase the value of BATCH_TIME to get more batches.\n");
+		exit(0);
+	}
 	nth_element(q.begin(), q.begin() + TOPK_THRESHOLD, q.end());
 	vector<pair<pair<int, int16_t>, int>> q1;
 	int mn_c = 1e9;
@@ -38,11 +42,10 @@ vector<pair<pair<int, int16_t>, int>> get_topk(
 	return q1;
 }
 
-pair<pair<vector<int>, int>, vector<pair<pair<int, int16_t>, int>>> groundtruth(
+pair<vector<int>, int> groundtruth(
 	const vector<pair<uint32_t, float>>& input,
 	double& BATCH_TIME_THRESHOLD,
 	double& UNIT_TIME,
-	int TOPK_THRESHOLD,
 	int BATCH_SIZE_THRESHOLD
 	) {
 	map<int, double> la;
@@ -96,16 +99,17 @@ pair<pair<vector<int>, int>, vector<pair<pair<int, int16_t>, int>>> groundtruth(
 		}
 		la[tkey] = ttime;
 	}
-	sort(batches.begin(), batches.end());
+	if (BATCH_SIZE_THRESHOLD > 1) sort(batches.begin(), batches.end());
 
 	printf("# items = %d\n", input_size);
+	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# batch size threshold = %d\n", BATCH_SIZE_THRESHOLD);
 	printf("# item batches %d\n", int(batches.size()));
+	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# filtered batches %d\n", filtered_cnt);
 	printf("Freq. of the hottest item = %d\n", mx_cnt);
 
-	return {{batches, batches.size() + filtered_cnt},
-			get_topk(input, batches, UNIT_TIME, TOPK_THRESHOLD)};
+	return {batches, batches.size() + filtered_cnt};
 }
 
 #undef _START
