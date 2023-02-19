@@ -42,7 +42,7 @@ vector<pair<pair<int, int16_t>, int>> groundtruth_topk(
 	return q1;
 }
 
-pair<vector<int>, int> groundtruth(
+pair<vector<int>, vector<int>> groundtruth(
 	const vector<pair<uint32_t, float>>& input,
 	double& BATCH_TIME_THRESHOLD,
 	double& UNIT_TIME,
@@ -78,8 +78,8 @@ pair<vector<int>, int> groundtruth(
 
 	map<int, int> la_cnt;
 	map<int, int> la_start;
+	vector<int> objects;
 	vector<int> batches;
-	int filtered_cnt = 0;
 	for (int i = 0; i < input_size; ++i) {
 		auto [tkey, ttime] = input[i];
 		if (la.count(tkey) && ttime - la[tkey] <= BATCH_TIME_THRESHOLD) {
@@ -87,29 +87,28 @@ pair<vector<int>, int> groundtruth(
 		} else {
 			la_cnt[tkey] = 1;
 			la_start[tkey] = i;
-			++filtered_cnt;
+			batches.push_back(i);
 		}
 		if (la_cnt[tkey] == BATCH_SIZE_THRESHOLD) {
-			#if REC_POS == _START
-				batches.push_back(la_start[tkey]);
-			#elif REC_POS == _INTER
-				batches.push_back(i);
-			#endif
-			--filtered_cnt;
+#if REC_POS == _START
+			objects.push_back(la_start[tkey]);
+#elif REC_POS == _INTER
+			objects.push_back(i);
+#endif
 		}
 		la[tkey] = ttime;
 	}
-	if (BATCH_SIZE_THRESHOLD > 1) sort(batches.begin(), batches.end());
+	if (BATCH_SIZE_THRESHOLD > 1) sort(objects.begin(), objects.end());
 
 	printf("# items = %d\n", input_size);
 	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# batch size threshold = %d\n", BATCH_SIZE_THRESHOLD);
-	printf("# item batches %d\n", int(batches.size()));
+	printf("# object batches %d\n", int(objects.size()));
 	if (BATCH_SIZE_THRESHOLD > 1)
-	printf("# filtered batches %d\n", filtered_cnt);
+	printf("# filtered batches %d\n", int(batches.size() - objects.size()));
 	printf("Freq. of the hottest item = %d\n", mx_cnt);
 
-	return {batches, batches.size() + filtered_cnt};
+	return {objects, batches};
 }
 
 #undef _START
