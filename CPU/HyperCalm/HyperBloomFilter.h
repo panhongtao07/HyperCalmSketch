@@ -50,6 +50,7 @@ template<>
 bool HyperBloomFilter::insert<true>(int key, double time) {
 	int first_bucket_pos = CalculatePos(key, TABLE_NUM) % bucket_num & ~(TABLE_NUM - 1);
 	bool ans = 0;
+#ifdef SIMD
 	__m512i* x = (__m512i*)(buckets + first_bucket_pos);
 	uint64_t b[8];
 	for (int i = 0; i < 8; ++i) {
@@ -75,6 +76,7 @@ bool HyperBloomFilter::insert<true>(int key, double time) {
 			ans = 1;
 		x += uint64_t(now_tag - old_tag) << (2 * pos);
 	}
+#endif
 	return ans;
 }
 
