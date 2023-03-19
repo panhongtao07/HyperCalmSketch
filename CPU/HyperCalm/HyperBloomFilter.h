@@ -96,11 +96,11 @@ bool HyperBloomFilter::insert(int key, double time) {
 			int now_tag = int(time / time_threshold + 1.0 * i / TABLE_NUM) % 3 + 1;
 			int ban_tag_m1 = now_tag % 3;
 
-			uint64_t ban_bits = buckets[bucket_pos] ^ MASK[ban_tag_m1];
-			ban_bits &= ban_bits >> 1;
-			ban_bits &= ODD_BIT_MASK;
-			ban_bits |= ban_bits << 1;
-			buckets[bucket_pos] &= ~ban_bits;
+			uint64_t is_ban_bits = buckets[bucket_pos] ^ MASK[ban_tag_m1];
+			is_ban_bits &= is_ban_bits >> 1;
+			is_ban_bits &= ODD_BIT_MASK;
+			uint64_t mask = is_ban_bits | (is_ban_bits << 1);
+			buckets[bucket_pos] &= ~mask;
 
 			int old_tag = (buckets[bucket_pos] >> (2 * pos)) & 3;
 			if (old_tag == 0)
