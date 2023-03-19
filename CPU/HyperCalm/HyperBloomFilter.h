@@ -6,7 +6,20 @@
 
 #include "../lib/param.h"
 
-static const uint64_t MASK[] = { 0xaaaaaaaaaaaaaaaa, 0x5555555555555555, 0 /*0xffffffffffffffff*/ };
+namespace {
+
+static constexpr uint64_t ODD_BIT_MASK = 0x5555555555555555;
+enum Bits : uint64_t {
+	_00 = 0x0000000000000000,
+	_01 = 0x5555555555555555,
+	_10 = 0xaaaaaaaaaaaaaaaa,
+	_11 = 0xffffffffffffffff,
+};
+static constexpr uint64_t STATE_MASKS[] = { Bits::_01, Bits::_10, Bits::_11 };
+static constexpr uint64_t MASK[] = { ~Bits::_01, ~Bits::_10, ~Bits::_11 };	
+
+}
+
 #define CELL_PER_BUCKET 32
 #define TABLE_NUM 8
 class HyperBloomFilter {
@@ -60,7 +73,7 @@ bool HyperBloomFilter::insert(int key, double time) {
 		__m512i ban = _mm512_set_epi64(b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
 		ban = _mm512_xor_epi64(*x, ban);
 		ban = _mm512_and_epi64(_mm512_rol_epi64(ban, 63), ban);
-		ban = _mm512_and_epi64(ban, _mm512_set1_epi64(MASK[1]));
+		ban = _mm512_and_epi64(ban, _mm512_set1_epi64(ODD_BIT_MASK));
 		ban = _mm512_or_epi64(_mm512_rol_epi64(ban, 1), ban);
 		*x = _mm512_andnot_epi64(ban, *x);
 		for (int i = 0; i < TABLE_NUM; ++i) {
@@ -83,17 +96,16 @@ bool HyperBloomFilter::insert(int key, double time) {
 			int now_tag = int(time / time_threshold + 1.0 * i / TABLE_NUM) % 3 + 1;
 			int ban_tag_m1 = now_tag % 3;
 
-			uint64_t& x = buckets[bucket_pos];
-			uint64_t ban_bits = x ^ MASK[ban_tag_m1];
+			uint64_t ban_bits = buckets[bucket_pos] ^ MASK[ban_tag_m1];
 			ban_bits &= ban_bits >> 1;
-			ban_bits &= MASK[1];
+			ban_bits &= ODD_BIT_MASK;
 			ban_bits |= ban_bits << 1;
-			x &= ~ban_bits;
+			buckets[bucket_pos] &= ~ban_bits;
 
-			int old_tag = (x >> (2 * pos)) & 3;
+			int old_tag = (buckets[bucket_pos] >> (2 * pos)) & 3;
 			if (old_tag == 0)
 				ans = 1;
-			x += uint64_t(now_tag - old_tag) << (2 * pos);
+			buckets[bucket_pos] += uint64_t(now_tag - old_tag) << (2 * pos);
 		}
 	}
 	return ans;
