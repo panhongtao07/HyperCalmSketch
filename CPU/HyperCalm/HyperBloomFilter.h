@@ -122,25 +122,29 @@ bool HyperBloomFilter::insert(int key, double time) {
 			buckets[bucket_pos] &= mask;
 
 			if constexpr(use_counter) {
+				buckets[bucket_pos] &= ~(kCellMask << (kCellBits * cell_pos));
+				buckets[bucket_pos] |= uint64_t(now_tag) << (kCellBits * cell_pos);
+
 				counters[bucket_pos] &= mask;
 				int cnt = counters[bucket_pos] >> (kCellBits * cell_pos) & kCellMask;
-				max_cnt = cnt > max_cnt ? cnt : max_cnt;
-				min_cnt = cnt < min_cnt ? cnt : min_cnt;
+				max_cnt = max(max_cnt, cnt);
+				min_cnt = min(min_cnt, cnt);
 				if (cnt != kCellMask) {
 					counters[bucket_pos] ^= uint64_t(cnt + 1 ^ cnt) << (kCellBits * cell_pos);
 				}
+			} else {
+				int old_tag = (buckets[bucket_pos] >> (kCellBits * cell_pos)) & kCellMask;
+				if (old_tag == 0)
+					ans = 1;
+				buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (kCellBits * cell_pos);
 			}
-
-			int old_tag = (buckets[bucket_pos] >> (kCellBits * cell_pos)) & kCellMask;
-			if (old_tag == 0)
-				ans = 1;
-			buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (kCellBits * cell_pos);
 		}
 	}
 	if constexpr(use_counter) {
-		ans = min_cnt == 0;
+		return min_cnt == 0;
+	} else {
+		return ans;
 	}
-	return ans;
 }
 
 
