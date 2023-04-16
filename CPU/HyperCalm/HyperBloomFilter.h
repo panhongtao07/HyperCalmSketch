@@ -6,7 +6,14 @@
 
 #include "../lib/param.h"
 
+#define TABLE_NUM 8
+
 namespace {
+
+static constexpr size_t kCellBits = 2;
+static constexpr size_t kCellPerBucket = sizeof(uint64_t) * 8 / kCellBits;
+static constexpr uint64_t kCellMask = (1 << kCellBits) - 1;
+static constexpr size_t kTableNum = TABLE_NUM;
 
 static constexpr uint64_t ODD_BIT_MASK = 0x5555555555555555;
 enum Bits : uint64_t {
@@ -16,18 +23,21 @@ enum Bits : uint64_t {
 	_11 = 0xffffffffffffffff,
 };
 static constexpr uint64_t STATE_MASKS[] = { Bits::_01, Bits::_10, Bits::_11 };
-static constexpr uint64_t MASK[] = { ~Bits::_01, ~Bits::_10, ~Bits::_11 };	
+static constexpr uint64_t MASK[] = { ~Bits::_01, ~Bits::_10, ~Bits::_11 };
+static constexpr size_t kStateNum = 3;
+static_assert(kStateNum + 1 <= (1 << kCellBits));
 
 }
 
-#define CELL_PER_BUCKET 32
-#define TABLE_NUM 8
+#undef TABLE_NUM
+
+
 class HyperBloomFilter {
 public:
 	uint64_t* buckets;
 	double time_threshold;
 	uint32_t bucket_num;
-	uint32_t seeds[TABLE_NUM + 1];
+	uint32_t seeds[kTableNum + 1];
 #ifdef SIMD
 	static constexpr bool use_simd = true;
 #else
@@ -35,12 +45,12 @@ public:
 #endif
 
 	HyperBloomFilter(uint32_t memory, double time_threshold_, int seed = 123) {
-		bucket_num = memory / TABLE_NUM / sizeof(uint64_t) * TABLE_NUM;
+		bucket_num = memory / sizeof(uint64_t);
 		time_threshold = time_threshold_;
 		buckets = new (align_val_t { 64 }) uint64_t[bucket_num];
 		memset(buckets, 0, bucket_num * sizeof(*buckets));
 		mt19937 rng(seed);
-		for (int i = 0; i <= TABLE_NUM; ++i) {
+		for (int i = 0; i <= kTableNum; ++i) {
 			seeds[i] = rng();
 		}
         printf("d = %d\t (Number of arrays in HyperBF)\n",bucket_num);
@@ -60,13 +70,13 @@ private:
 
 
 bool HyperBloomFilter::insert(int key, double time) {
-	int first_bucket_pos = CalculatePos(key, TABLE_NUM) % bucket_num & ~(TABLE_NUM - 1);
+	int first_bucket_pos = CalculatePos(key, kTableNum) % bucket_num & ~(kTableNum - 1);
 	bool ans = 0;
 	if constexpr(use_simd) {
 		__m512i* x = (__m512i*)(buckets + first_bucket_pos);
 		uint64_t b[8];
 		for (int i = 0; i < 8; ++i) {
-			int now_tag = int(time / time_threshold + 1.0 * i / TABLE_NUM) % 3 + 1;
+			int now_tag = int(time / time_threshold + 1.0 * i / kTableNum) % 3 + 1;
 			int ban_tag_m1 = now_tag % 3;
 			b[7 - i] = MASK[ban_tag_m1];
 		}
@@ -76,11 +86,11 @@ bool HyperBloomFilter::insert(int key, double time) {
 		ban = _mm512_and_epi64(ban, _mm512_set1_epi64(ODD_BIT_MASK));
 		ban = _mm512_or_epi64(_mm512_rol_epi64(ban, 1), ban);
 		*x = _mm512_andnot_epi64(ban, *x);
-		for (int i = 0; i < TABLE_NUM; ++i) {
-			int pos = CalculatePos(key, i) % 32;
+		for (int i = 0; i < kTableNum; ++i) {
+			int pos = CalculatePos(key, i) % kCellPerBucket;
 			int bucket_pos = (first_bucket_pos + i);
 
-			int now_tag = int(time / time_threshold + 1.0 * i / TABLE_NUM) % 3 + 1;
+			int now_tag = int(time / time_threshold + 1.0 * i / kTableNum) % 3 + 1;
 
 			uint64_t& x = buckets[bucket_pos];
 			int old_tag = (x >> (2 * pos)) & 3;
@@ -89,11 +99,11 @@ bool HyperBloomFilter::insert(int key, double time) {
 			x += uint64_t(now_tag - old_tag) << (2 * pos);
 		}
 	} else {
-		for (int i = 0; i < TABLE_NUM; ++i) {
-			int pos = CalculatePos(key, i) % 32;
+		for (int i = 0; i < kTableNum; ++i) {
+			int pos = CalculatePos(key, i) % kCellPerBucket;
 			int bucket_pos = (first_bucket_pos + i);
 
-			int now_tag = int(time / time_threshold + 1.0 * i / TABLE_NUM) % 3 + 1;
+			int now_tag = int(time / time_threshold + 1.0 * i / kTableNum) % 3 + 1;
 			int ban_tag_m1 = now_tag % 3;
 
 			uint64_t is_ban_bits = buckets[bucket_pos] ^ MASK[ban_tag_m1];
@@ -110,10 +120,6 @@ bool HyperBloomFilter::insert(int key, double time) {
 	}
 	return ans;
 }
-
-
-#undef CELL_PER_BUCKET
-#undef TABLE_NUM
 
 
 #endif // _HYPERBLOOMFILTER_H_
