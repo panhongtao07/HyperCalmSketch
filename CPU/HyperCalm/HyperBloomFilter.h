@@ -79,6 +79,7 @@ bool HyperBloomFilter::insert(int key, double time) {
 	static_assert(kCellBits == 2, "Insert is specified for 2 bit cell!");
 	int first_bucket_pos = CalculatePos(key, kTableNum) % bucket_num & ~(kTableNum - 1);
 	bool ans = 0;
+	int min_cnt = kCellMask, max_cnt = 0;
 	if constexpr(use_simd) {
 		__m512i* x = (__m512i*)(buckets + first_bucket_pos);
 		uint64_t b[8];
@@ -120,11 +121,24 @@ bool HyperBloomFilter::insert(int key, double time) {
 			uint64_t mask = is_ban_bits | (is_ban_bits << 1);
 			buckets[bucket_pos] &= mask;
 
+			if constexpr(use_counter) {
+				counters[bucket_pos] &= mask;
+				int cnt = counters[bucket_pos] >> (kCellBits * cell_pos) & kCellMask;
+				max_cnt = cnt > max_cnt ? cnt : max_cnt;
+				min_cnt = cnt < min_cnt ? cnt : min_cnt;
+				if (cnt != kCellMask) {
+					counters[bucket_pos] ^= uint64_t(cnt + 1 ^ cnt) << (kCellBits * cell_pos);
+				}
+			}
+
 			int old_tag = (buckets[bucket_pos] >> (kCellBits * cell_pos)) & kCellMask;
 			if (old_tag == 0)
 				ans = 1;
 			buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (kCellBits * cell_pos);
 		}
+	}
+	if constexpr(use_counter) {
+		ans = min_cnt == 0;
 	}
 	return ans;
 }
