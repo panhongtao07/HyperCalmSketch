@@ -35,6 +35,7 @@ static_assert(kStateNum + 1 <= (1 << kCellBits));
 class HyperBloomFilter {
 public:
 	uint64_t* buckets;
+	uint64_t* counters;
 	double time_threshold;
 	uint32_t bucket_num;
 	uint32_t seeds[kTableNum + 1];
@@ -43,12 +44,17 @@ public:
 #else
 	static constexpr bool use_simd = false;
 #endif
+	static constexpr bool use_counter = !use_simd;
 
-	HyperBloomFilter(uint32_t memory, double time_threshold_, int seed = 123) {
-		bucket_num = memory / sizeof(uint64_t);
-		time_threshold = time_threshold_;
-		buckets = new (align_val_t { 64 }) uint64_t[bucket_num];
-		memset(buckets, 0, bucket_num * sizeof(*buckets));
+	HyperBloomFilter(uint32_t memory, double time_threshold_, int seed = 123)
+		: counters(nullptr), time_threshold(time_threshold_) {
+		uint32_t memsize = memory / sizeof(uint64_t);
+		bucket_num = memsize;
+		buckets = new (align_val_t { 64 }) uint64_t[bucket_num] {};
+		if constexpr(use_counter) {
+			// Use extra memory to store counter, just testing, record it later
+			counters = new (align_val_t { 64 }) uint64_t[bucket_num] {};
+		}
 		mt19937 rng(seed);
 		for (int i = 0; i <= kTableNum; ++i) {
 			seeds[i] = rng();
