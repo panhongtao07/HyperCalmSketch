@@ -6,14 +6,13 @@
 
 #include "../lib/param.h"
 
-#define TABLE_NUM 8
 
 namespace {
 
 static constexpr size_t kCellBits = 2;
 static constexpr size_t kCellPerBucket = sizeof(uint64_t) * 8 / kCellBits;
 static constexpr uint64_t kCellMask = (1 << kCellBits) - 1;
-static constexpr size_t kTableNum = TABLE_NUM;
+static constexpr size_t kTableNum = 8;
 
 static constexpr uint64_t ODD_BIT_MASK = 0x5555555555555555;
 enum Bits : uint64_t {
@@ -29,7 +28,6 @@ static_assert(kStateNum + 1 <= (1 << kCellBits));
 
 }
 
-#undef TABLE_NUM
 
 
 class HyperBloomFilter {
@@ -66,6 +64,7 @@ public:
 		delete[] buckets;
 	}
 
+	template <size_t CellBits = kCellBits>
 	bool insert(int key, double time);
 
 private:
@@ -75,7 +74,8 @@ private:
 };
 
 
-bool HyperBloomFilter::insert(int key, double time) {
+template <>
+bool HyperBloomFilter::insert<2>(int key, double time) {
 	static_assert(kCellBits == 2, "Insert is specified for 2 bit cell!");
 	int first_bucket_pos = CalculatePos(key, kTableNum) % bucket_num & ~(kTableNum - 1);
 	bool ans = 0;
