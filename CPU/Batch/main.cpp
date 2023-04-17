@@ -1,12 +1,11 @@
-#include <string.h>
+#include <cstring>
 #include <cstdint>
 #include <cstdlib>
-#include <assert.h>
+#include <cassert>
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <list>
-#include <string.h>
 using namespace std;
 
 #include <boost/program_options.hpp>
@@ -71,6 +70,34 @@ void ParseArgs(int argc, char** argv) {
 		verbose = true;
 }
 
+template <typename Sketch>
+tuple<int, int, int> test_batch_hit(
+	Sketch&& sketch,
+	const vector<pair<uint32_t, float>>& input,
+	vector<int>& objects,
+	vector<int>& batches
+) {
+	int object_count = 0, correct_count = 0, tot_our_size = 0;
+	int j = 0, k = 0;
+	for (int i = 0; i < input.size(); ++i) {
+		auto& [tkey, ttime] = input[i];
+		if (sketch.insert(tkey, ttime)) {
+			++tot_our_size;
+			while (j + 1 < int(batches.size()) && batches[j] < i)
+				++j;
+			if (j < int(batches.size()) && batches[j] == i) {
+				++correct_count;
+			}
+			while (k + 1 < int(objects.size()) && objects[k] < i)
+				++k;
+			if (k < int(objects.size()) && objects[k] == i) {
+				++object_count;
+			}
+		}
+	}
+	return make_tuple(object_count, correct_count, tot_our_size);
+}
+
 int main(int argc, char** argv) {
 	ParseArgs(argc, argv);
 	printf("---------------------------------------------\n");
@@ -79,9 +106,7 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto res = groundtruth(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT);
-	auto objects = move(res.first);
-	auto batches = move(res.second);
+	auto [objects, batches] = groundtruth(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT);
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
 		puts("Test Hyper Bloom filter");
@@ -93,38 +118,21 @@ int main(int argc, char** argv) {
 		puts("Test SWAMP");
 	} 		
 	int object_count = 0, correct_count = 0, tot_our_size = 0;
-	auto check = [&](auto sketch) {
-		int j = 0, k = 0;
-		for (int i = 0; i < (int)input.size(); ++i) {
-			auto pr = input[i];
-			auto tkey = pr.first;
-			auto ttime = pr.second;
-			if (sketch.insert(tkey, ttime)) {
-				++tot_our_size;
-				while (j + 1 < int(batches.size()) && batches[j] < i)
-					++j;
-				if (j < int(batches.size()) && batches[j] == i) {
-					++correct_count;
-				}
-				while (k + 1 < int(objects.size()) && objects[k] < i)
-					++k;
-				if (k < int(objects.size()) && objects[k] == i) {
-					++object_count;
-				}
-			}
-		}
-	};
 	timespec start_time, end_time;
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	for (int t = 0; t < repeat_time; ++t) {
+		tuple<int, int, int> res;
 		if (sketchName == 1)
-			check(HyperBloomFilter(memory, BATCH_TIME, t));
+			res = test_batch_hit(HyperBloomFilter(memory, BATCH_TIME, t), input, objects, batches);
 		else if (sketchName == 2)
-			check(clockSketch(memory, BATCH_TIME, t));
+			res = test_batch_hit(clockSketch(memory, BATCH_TIME, t), input, objects, batches);
 		else if (sketchName == 3)
-			check(TOBF(memory, BATCH_TIME, 4, t));
+			res = test_batch_hit(TOBF(memory, BATCH_TIME, 4, t), input, objects, batches);
 		else if (sketchName == 4)
-			check(SWAMP<int, float>(memory, BATCH_TIME));
+			res = test_batch_hit(SWAMP<int, float>(memory, BATCH_TIME), input, objects, batches);
+		object_count += get<0>(res);
+		correct_count += get<1>(res);
+		tot_our_size += get<2>(res);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &end_time);
 	uint64_t time_ns = uint64_t(end_time.tv_sec - start_time.tv_sec) * 1000000000 + (end_time.tv_nsec - start_time.tv_nsec);
