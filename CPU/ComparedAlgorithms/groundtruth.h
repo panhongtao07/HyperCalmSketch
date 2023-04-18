@@ -2,18 +2,23 @@
 #define _GROUNDTRUTH_H_
 #include <algorithm>
 
-#define _START 0
-#define _INTER 1
+namespace groundtruth {
+
+enum RecordPos : int {
+	START,
+	INTER,
+};
+
 #ifndef REC_POS
-	#define REC_POS _START
+#define REC_POS RecordPos::START
 #endif
 
-vector<pair<pair<int, int16_t>, int>> groundtruth_topk(
+vector<pair<pair<int, int16_t>, int>> topk(
 	const vector<pair<uint32_t, float>>& input,
 	const vector<int>& batches,
 	double UNIT_TIME,
 	int TOPK_THRESHOLD
-	) {
+) {
 	map<pair<int, int16_t>, int> cnt;
 	map<int, double> las;
 	for (auto i : batches) {
@@ -42,12 +47,12 @@ vector<pair<pair<int, int16_t>, int>> groundtruth_topk(
 	return q1;
 }
 
-pair<vector<int>, vector<int>> groundtruth(
+pair<vector<int>, vector<int>> batch(
 	const vector<pair<uint32_t, float>>& input,
 	double& BATCH_TIME_THRESHOLD,
 	double& UNIT_TIME,
 	int BATCH_SIZE_THRESHOLD
-	) {
+) {
 	map<int, double> la;
 	int input_size = input.size();
 	if (!BATCH_TIME_THRESHOLD) {
@@ -90,11 +95,10 @@ pair<vector<int>, vector<int>> groundtruth(
 			batches.push_back(i);
 		}
 		if (la_cnt[tkey] == BATCH_SIZE_THRESHOLD) {
-#if REC_POS == _START
-			objects.push_back(la_start[tkey]);
-#elif REC_POS == _INTER
-			objects.push_back(i);
-#endif
+			if constexpr (REC_POS == RecordPos::START)
+				objects.push_back(la_start[tkey]);
+			else if constexpr (REC_POS == RecordPos::INTER)
+				objects.push_back(i);
 		}
 		la[tkey] = ttime;
 	}
@@ -111,8 +115,7 @@ pair<vector<int>, vector<int>> groundtruth(
 	return {objects, batches};
 }
 
-#undef _START
-#undef _INTER
 #undef REC_POS
+}  // namespace groundtruth
 
 #endif  //_GROUNDTRUTH_H_

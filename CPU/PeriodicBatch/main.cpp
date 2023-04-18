@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto batches = groundtruth(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT).first;
-	auto ans = groundtruth_topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
+	auto batches = groundtruth::batch(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT).first;
+	auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
 	printf("BATCH_TIME = %f\n", BATCH_TIME);
 	printf("UNIT_TIME = %f\n", UNIT_TIME);
 	printf("---------------------------------------------\n");
