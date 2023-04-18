@@ -13,45 +13,50 @@ enum RecordPos : int {
 #define REC_POS RecordPos::START
 #endif
 
-pair<vector<int>, vector<int>> batch(
+void adjust_params(
 	const vector<pair<uint32_t, float>>& input,
-	double& BATCH_TIME_THRESHOLD,
-	double& UNIT_TIME,
-	int BATCH_SIZE_THRESHOLD
+	double& batch_time_threshold,
+	double& unit_time
 ) {
 	map<int, double> la;
-	int input_size = input.size();
-	if (!BATCH_TIME_THRESHOLD) {
+	if (!batch_time_threshold) {
 		double sum = 0;
 		int cnt = 0;
-		for (int i = 0; i < input_size; ++i) {
-			auto [tkey, ttime] = input[i];
+		for (auto& [tkey, ttime] : input) {
 			if (la.count(tkey)) {
 				sum += ttime - la[tkey];
 				++cnt;
 			}
 			la[tkey] = ttime;
 		}
-		la.clear();
-		BATCH_TIME_THRESHOLD = sum / cnt / 1 /*0*/;
+		batch_time_threshold = sum / cnt / 1 /*0*/;
 	}
+	if (!unit_time) {
+		unit_time = batch_time_threshold * 10;
+	}
+}
+
+template <RecordPos recordPos = RecordPos(REC_POS)>
+pair<vector<int>, vector<int>> batch(
+	const vector<pair<uint32_t, float>>& input,
+	double& BATCH_TIME_THRESHOLD,
+	double& UNIT_TIME,
+	int BATCH_SIZE_THRESHOLD
+) {
+	adjust_params(input, BATCH_TIME_THRESHOLD, UNIT_TIME);
+	map<int, double> la;
 	map<int, int> cnt;
 	int mx_cnt = 0;
-	for (int i = 0; i < input_size; ++i) {
-		auto [tkey, ttime] = input[i];
+	for (auto& [tkey, ttime] : input) {
 		mx_cnt = max(mx_cnt, ++cnt[tkey]);
 	}
-	printf("# distinct items: %d\n", (int)cnt.size());
-
-	if (!UNIT_TIME) {
-		UNIT_TIME = BATCH_TIME_THRESHOLD * 10;
-	}
+	printf("# distinct items: %d\n", cnt.size());
 
 	map<int, int> la_cnt;
 	map<int, int> la_start;
 	vector<int> objects;
 	vector<int> batches;
-	for (int i = 0; i < input_size; ++i) {
+	for (int i = 0; i < input.size(); ++i) {
 		auto [tkey, ttime] = input[i];
 		if (la.count(tkey) && ttime - la[tkey] <= BATCH_TIME_THRESHOLD) {
 			++la_cnt[tkey];
@@ -61,19 +66,19 @@ pair<vector<int>, vector<int>> batch(
 			batches.push_back(i);
 		}
 		if (la_cnt[tkey] == BATCH_SIZE_THRESHOLD) {
-			if constexpr (REC_POS == RecordPos::START)
+			if constexpr (recordPos == RecordPos::START)
 				objects.push_back(la_start[tkey]);
-			else if constexpr (REC_POS == RecordPos::INTER)
+			else if constexpr (recordPos == RecordPos::INTER)
 				objects.push_back(i);
 		}
 		la[tkey] = ttime;
 	}
 	if (BATCH_SIZE_THRESHOLD > 1) sort(objects.begin(), objects.end());
 
-	printf("# items = %d\n", input_size);
+	printf("# items = %d\n", input.size());
 	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# batch size threshold = %d\n", BATCH_SIZE_THRESHOLD);
-	printf("# object batches %d\n", int(objects.size()));
+	printf("# object batches %d\n", objects.size());
 	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# filtered batches %d\n", int(batches.size() - objects.size()));
 	printf("Freq. of the hottest item = %d\n", mx_cnt);
@@ -100,10 +105,10 @@ vector<pair<pair<int, int16_t>, int>> topk(
 	}
 
 	vector<pair<int, pair<int, int16_t>>> q;
-	for (auto [pr, c] : cnt)
+	for (auto& [pr, c] : cnt)
 		q.push_back({-c, pr});
 	if (q.size() < TOPK_THRESHOLD) {
-		printf("Not enough periodical batches: %d < %d\n", int(q.size()), TOPK_THRESHOLD);
+		printf("Not enough periodical batches: %d < %d\n", q.size(), TOPK_THRESHOLD);
 		printf("Please increase the value of BATCH_TIME to get more batches.\n");
 		exit(0);
 	}
