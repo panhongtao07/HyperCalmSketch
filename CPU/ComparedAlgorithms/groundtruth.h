@@ -13,40 +13,6 @@ enum RecordPos : int {
 #define REC_POS RecordPos::START
 #endif
 
-vector<pair<pair<int, int16_t>, int>> topk(
-	const vector<pair<uint32_t, float>>& input,
-	const vector<int>& batches,
-	double UNIT_TIME,
-	int TOPK_THRESHOLD
-) {
-	map<pair<int, int16_t>, int> cnt;
-	map<int, double> las;
-	for (auto i : batches) {
-		auto [v, t] = input[i];
-		if (las.count(v)) {
-			++cnt[{v, (t - las[v]) / UNIT_TIME}];
-		}
-		las[v] = t;
-	}
-
-	vector<pair<int, pair<int, int16_t>>> q;
-	for (auto [pr, c] : cnt)
-		q.push_back({-c, pr});
-	if (q.size() < TOPK_THRESHOLD) {
-		printf("Not enough periodical batches: %d < %d\n", int(q.size()), TOPK_THRESHOLD);
-		printf("Please increase the value of BATCH_TIME to get more batches.\n");
-		exit(0);
-	}
-	nth_element(q.begin(), q.begin() + TOPK_THRESHOLD, q.end());
-	vector<pair<pair<int, int16_t>, int>> q1;
-	int mn_c = 1e9;
-	for (int i = 0; i < TOPK_THRESHOLD; ++i) {
-		q1.push_back({q[i].second, -q[i].first});
-		mn_c = min(mn_c, -q[i].first);
-	}
-	return q1;
-}
-
 pair<vector<int>, vector<int>> batch(
 	const vector<pair<uint32_t, float>>& input,
 	double& BATCH_TIME_THRESHOLD,
@@ -116,6 +82,41 @@ pair<vector<int>, vector<int>> batch(
 }
 
 #undef REC_POS
+
+vector<pair<pair<int, int16_t>, int>> topk(
+	const vector<pair<uint32_t, float>>& input,
+	const vector<int>& batches,
+	double UNIT_TIME,
+	int TOPK_THRESHOLD
+) {
+	map<pair<int, int16_t>, int> cnt;
+	map<int, double> las;
+	for (auto i : batches) {
+		auto [v, t] = input[i];
+		if (las.count(v)) {
+			++cnt[{v, (t - las[v]) / UNIT_TIME}];
+		}
+		las[v] = t;
+	}
+
+	vector<pair<int, pair<int, int16_t>>> q;
+	for (auto [pr, c] : cnt)
+		q.push_back({-c, pr});
+	if (q.size() < TOPK_THRESHOLD) {
+		printf("Not enough periodical batches: %d < %d\n", int(q.size()), TOPK_THRESHOLD);
+		printf("Please increase the value of BATCH_TIME to get more batches.\n");
+		exit(0);
+	}
+	nth_element(q.begin(), q.begin() + TOPK_THRESHOLD, q.end());
+	vector<pair<pair<int, int16_t>, int>> q1;
+	int mn_c = 1e9;
+	for (int i = 0; i < TOPK_THRESHOLD; ++i) {
+		q1.push_back({q[i].second, -q[i].first});
+		mn_c = min(mn_c, -q[i].first);
+	}
+	return q1;
+}
+
 }  // namespace groundtruth
 
 #endif  //_GROUNDTRUTH_H_
