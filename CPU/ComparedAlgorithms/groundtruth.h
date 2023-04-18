@@ -39,11 +39,9 @@ void adjust_params(
 template <RecordPos recordPos = RecordPos(REC_POS)>
 pair<vector<int>, vector<int>> batch(
 	const vector<pair<uint32_t, float>>& input,
-	double& BATCH_TIME_THRESHOLD,
-	double& UNIT_TIME,
+	double BATCH_TIME_THRESHOLD,
 	int BATCH_SIZE_THRESHOLD
 ) {
-	adjust_params(input, BATCH_TIME_THRESHOLD, UNIT_TIME);
 	map<int, double> la;
 	map<int, int> cnt;
 	int mx_cnt = 0;

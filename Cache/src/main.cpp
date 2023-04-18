@@ -8,7 +8,7 @@
 #include <list>
 #include <string.h>
 using namespace std;
-static int TOPK_THRESHOLD = 100;
+
 static double BATCH_TIME_THRESHOLD = 0.727 / 5e4;
 static double UNIT_TIME = BATCH_TIME_THRESHOLD * 10;
 const double addpre = UNIT_TIME * 30;
@@ -42,7 +42,7 @@ vector<pair<uint32_t, float>> loaddata(char* filename) {
 }
 void check_css(char* filename, int sz, int cachesize) {
 	vector<pair<uint32_t, float>> input = loaddata(filename);
-	groundtruth::batch(input, BATCH_TIME_THRESHOLD, UNIT_TIME, 1);
+	groundtruth::adjust_params(input, BATCH_TIME_THRESHOLD, UNIT_TIME);
 	puts("(* Each item is a memory access request.)");
 	//    puts("read over");
 	printf("Finish reading %s\n", filename);

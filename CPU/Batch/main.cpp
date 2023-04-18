@@ -106,7 +106,8 @@ int main(int argc, char** argv) {
 		input = loadCAIDA(fileName.c_str());
 	else
 		input = loadCRITEO(fileName.c_str());
-	auto [objects, batches] = groundtruth::batch(input, BATCH_TIME, UNIT_TIME, BATCH_SIZE_LIMIT);
+	groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
+	auto [objects, batches] = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT);
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
 		puts("Test Hyper Bloom filter");
