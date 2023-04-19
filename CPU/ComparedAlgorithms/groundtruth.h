@@ -36,40 +36,60 @@ void adjust_params(
 	}
 }
 
+map<int, int> item_count(const vector<pair<uint32_t, float>>& input) {
+	map<int, int> cnt;
+	int mx_cnt = 0;
+	for (auto& [tkey, ttime] : input) {
+		mx_cnt = max(mx_cnt, ++cnt[tkey]);
+	}
+	printf("Freq. of the hottest item = %d\n", mx_cnt);
+	printf("# distinct items: %d\n", cnt.size());
+	return cnt;
+}
+
+vector<int> realtime_size(
+	const vector<pair<uint32_t, float>>& input,
+	double BATCH_TIME_THRESHOLD
+) {
+	map<int, double> la;
+	map<int, int> la_cnt;
+	vector<int> realtime_sizes;
+	for (auto& [tkey, ttime] : input) {
+		if (la.count(tkey) && ttime - la[tkey] <= BATCH_TIME_THRESHOLD) {
+			++la_cnt[tkey];
+		} else {
+			la_cnt[tkey] = 1;
+		}
+		la[tkey] = ttime;
+		realtime_sizes.push_back(la_cnt[tkey]);
+	}
+	return realtime_sizes;
+}
+
 template <RecordPos recordPos = RecordPos(REC_POS)>
 pair<vector<int>, vector<int>> batch(
 	const vector<pair<uint32_t, float>>& input,
 	double BATCH_TIME_THRESHOLD,
 	int BATCH_SIZE_THRESHOLD
 ) {
-	map<int, double> la;
-	map<int, int> cnt;
-	int mx_cnt = 0;
-	for (auto& [tkey, ttime] : input) {
-		mx_cnt = max(mx_cnt, ++cnt[tkey]);
-	}
-	printf("# distinct items: %d\n", cnt.size());
-
-	map<int, int> la_cnt;
+	item_count(input);
 	map<int, int> la_start;
 	vector<int> objects;
 	vector<int> batches;
-	for (int i = 0; i < input.size(); ++i) {
-		auto [tkey, ttime] = input[i];
-		if (la.count(tkey) && ttime - la[tkey] <= BATCH_TIME_THRESHOLD) {
-			++la_cnt[tkey];
-		} else {
-			la_cnt[tkey] = 1;
+	auto realtime_sizes = realtime_size(input, BATCH_TIME_THRESHOLD);
+	for (int i = 0; i < realtime_sizes.size(); ++i) {
+		auto cnt = realtime_sizes[i];
+		auto tkey = input[i].first;
+		if (cnt == 1) {
 			la_start[tkey] = i;
 			batches.push_back(i);
 		}
-		if (la_cnt[tkey] == BATCH_SIZE_THRESHOLD) {
+		if (cnt == BATCH_SIZE_THRESHOLD) {
 			if constexpr (recordPos == RecordPos::START)
 				objects.push_back(la_start[tkey]);
 			else if constexpr (recordPos == RecordPos::INTER)
 				objects.push_back(i);
 		}
-		la[tkey] = ttime;
 	}
 	if (BATCH_SIZE_THRESHOLD > 1) sort(objects.begin(), objects.end());
 
@@ -79,7 +99,6 @@ pair<vector<int>, vector<int>> batch(
 	printf("# object batches %d\n", objects.size());
 	if (BATCH_SIZE_THRESHOLD > 1)
 	printf("# filtered batches %d\n", int(batches.size() - objects.size()));
-	printf("Freq. of the hottest item = %d\n", mx_cnt);
 
 	return {objects, batches};
 }
