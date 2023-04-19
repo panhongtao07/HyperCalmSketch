@@ -1,6 +1,11 @@
 #ifndef _GROUNDTRUTH_H_
 #define _GROUNDTRUTH_H_
+
+#include <cstdio>
 #include <algorithm>
+#include <map>
+#include <vector>
+#include <utility>
 
 namespace groundtruth {
 
