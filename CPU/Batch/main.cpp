@@ -71,7 +71,7 @@ void ParseArgs(int argc, char** argv) {
 }
 
 template <typename Sketch>
-tuple<int, int, int> test_batch_hit(
+tuple<int, int, int> single_hit_test(
 	Sketch&& sketch,
 	const vector<pair<uint32_t, float>>& input,
 	vector<int>& objects,
@@ -98,15 +98,9 @@ tuple<int, int, int> test_batch_hit(
 	return make_tuple(object_count, correct_count, tot_our_size);
 }
 
-int main(int argc, char** argv) {
-	ParseArgs(argc, argv);
-	printf("---------------------------------------------\n");
-	vector<pair<uint32_t, float>> input;
-	if (fileName.back() == 't')
-		input = loadCAIDA(fileName.c_str());
-	else
-		input = loadCRITEO(fileName.c_str());
+void hit_test(const vector<pair<uint32_t, float>>& input) {
 	groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
+	groundtruth::item_count(input);
 	auto [objects, batches] = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT);
 	printf("---------------------------------------------\n");
 	if (sketchName == 1) {
@@ -117,20 +111,20 @@ int main(int argc, char** argv) {
 		puts("Test Time-Out Bloom filter");
 	} else if (sketchName == 4) {
 		puts("Test SWAMP");
-	} 		
+	}
 	int object_count = 0, correct_count = 0, tot_our_size = 0;
 	timespec start_time, end_time;
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	for (int t = 0; t < repeat_time; ++t) {
 		tuple<int, int, int> res;
 		if (sketchName == 1)
-			res = test_batch_hit(HyperBloomFilter(memory, BATCH_TIME, t), input, objects, batches);
+			res = single_hit_test(HyperBloomFilter(memory, BATCH_TIME, t),input, objects, batches);
 		else if (sketchName == 2)
-			res = test_batch_hit(clockSketch(memory, BATCH_TIME, t), input, objects, batches);
+			res = single_hit_test(clockSketch(memory, BATCH_TIME, t), input, objects, batches);
 		else if (sketchName == 3)
-			res = test_batch_hit(TOBF(memory, BATCH_TIME, 4, t), input, objects, batches);
+			res = single_hit_test(TOBF(memory, BATCH_TIME, 4, t), input, objects, batches);
 		else if (sketchName == 4)
-			res = test_batch_hit(SWAMP<int, float>(memory, BATCH_TIME), input, objects, batches);
+			res = single_hit_test(SWAMP<int, float>(memory, BATCH_TIME), input, objects, batches);
 		object_count += get<0>(res);
 		correct_count += get<1>(res);
 		tot_our_size += get<2>(res);
@@ -151,4 +145,16 @@ int main(int argc, char** argv) {
 				correct_count, tot_our_size - correct_count, int(objects.size()) - object_count);
 	}
 	printf("---------------------------------------------\n");
+}
+
+int main(int argc, char** argv) {
+	ParseArgs(argc, argv);
+	printf("---------------------------------------------\n");
+	vector<pair<uint32_t, float>> input;
+	if (fileName.back() == 't')
+		input = loadCAIDA(fileName.c_str());
+	else
+		input = loadCRITEO(fileName.c_str());
+	printf("---------------------------------------------\n");
+	hit_test(input);
 }

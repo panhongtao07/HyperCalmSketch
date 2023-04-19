@@ -38,12 +38,13 @@ void adjust_params(
 
 map<int, int> item_count(const vector<pair<uint32_t, float>>& input) {
 	map<int, int> cnt;
-	int mx_cnt = 0;
+	int max_cnt = 0;
 	for (auto& [tkey, ttime] : input) {
-		mx_cnt = max(mx_cnt, ++cnt[tkey]);
+		max_cnt = max(max_cnt, ++cnt[tkey]);
 	}
-	printf("Freq. of the hottest item = %d\n", mx_cnt);
-	printf("# distinct items: %d\n", cnt.size());
+	printf("Freq. of the hottest item = %d\n", max_cnt);
+	printf("distinct items: %zu\n", cnt.size());
+	printf("items: %zu\n", input.size());
 	return cnt;
 }
 
@@ -51,18 +52,20 @@ vector<int> realtime_size(
 	const vector<pair<uint32_t, float>>& input,
 	double BATCH_TIME_THRESHOLD
 ) {
-	map<int, double> la;
-	map<int, int> la_cnt;
+	map<int, double> last_time;
+	map<int, int> last_cnt;
 	vector<int> realtime_sizes;
-	for (auto& [tkey, ttime] : input) {
-		if (la.count(tkey) && ttime - la[tkey] <= BATCH_TIME_THRESHOLD) {
-			++la_cnt[tkey];
+	int max_size = 0;
+	for (auto& [key, time] : input) {
+		if (last_time.count(key) && time - last_time[key] <= BATCH_TIME_THRESHOLD) {
+			max_size = max(max_size, ++last_cnt[key]);
 		} else {
-			la_cnt[tkey] = 1;
+			last_cnt[key] = 1;
 		}
-		la[tkey] = ttime;
-		realtime_sizes.push_back(la_cnt[tkey]);
+		last_time[key] = time;
+		realtime_sizes.push_back(last_cnt[key]);
 	}
+	printf("Largest batch: %d\n", max_size);
 	return realtime_sizes;
 }
 
@@ -72,7 +75,6 @@ pair<vector<int>, vector<int>> batch(
 	double BATCH_TIME_THRESHOLD,
 	int BATCH_SIZE_THRESHOLD
 ) {
-	item_count(input);
 	map<int, int> la_start;
 	vector<int> objects;
 	vector<int> batches;
@@ -91,15 +93,12 @@ pair<vector<int>, vector<int>> batch(
 				objects.push_back(i);
 		}
 	}
-	if (BATCH_SIZE_THRESHOLD > 1) sort(objects.begin(), objects.end());
-
-	printf("# items = %d\n", input.size());
-	if (BATCH_SIZE_THRESHOLD > 1)
-	printf("# batch size threshold = %d\n", BATCH_SIZE_THRESHOLD);
-	printf("# object batches %d\n", objects.size());
-	if (BATCH_SIZE_THRESHOLD > 1)
-	printf("# filtered batches %d\n", int(batches.size() - objects.size()));
-
+	if (BATCH_SIZE_THRESHOLD > 1) {
+		sort(objects.begin(), objects.end());
+		printf("batch size threshold = %d\n", BATCH_SIZE_THRESHOLD);
+		printf("filtered batches: %d\n", int(batches.size() - objects.size()));
+	}
+	printf("object batches: %zu\n", objects.size());
 	return {objects, batches};
 }
 
@@ -125,7 +124,7 @@ vector<pair<pair<int, int16_t>, int>> topk(
 	for (auto& [pr, c] : cnt)
 		q.push_back({-c, pr});
 	if (q.size() < TOPK_THRESHOLD) {
-		printf("Not enough periodical batches: %d < %d\n", q.size(), TOPK_THRESHOLD);
+		printf("Not enough periodical batches: %zu < %d\n", q.size(), TOPK_THRESHOLD);
 		printf("Please increase the value of BATCH_TIME to get more batches.\n");
 		exit(0);
 	}
