@@ -4,9 +4,6 @@
 #include <assert.h>
 #include <vector>
 #include <map>
-#include <unordered_map>
-#include <list>
-#include <string.h>
 using namespace std;
 
 #include <boost/program_options.hpp>

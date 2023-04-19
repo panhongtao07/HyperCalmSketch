@@ -1,14 +1,15 @@
+#include <cassert>
 #include <ctime>
 
 #include "params.h"
 
 using namespace std;
 
+#include "../HyperCalm/HyperBloomFilter.h"
 #include "../ComparedAlgorithms/clockSketch.h"
 #include "../ComparedAlgorithms/SWAMP.h"
 #include "../ComparedAlgorithms/TOBF.h"
 #include "../ComparedAlgorithms/groundtruth.h"
-#include "../HyperCalm/HyperBloomFilter.h"
 
 template <typename Sketch>
 tuple<int, int, int> single_hit_test(
