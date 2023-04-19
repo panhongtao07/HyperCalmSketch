@@ -65,6 +65,8 @@ public:
 	}
 
 	template <size_t CellBits = kCellBits>
+	int insert_cnt(int key, double time);
+	template <size_t CellBits = kCellBits>
 	bool insert(int key, double time);
 
 private:
@@ -75,10 +77,9 @@ private:
 
 
 template <>
-bool HyperBloomFilter::insert<2>(int key, double time) {
+int HyperBloomFilter::insert_cnt<2>(int key, double time) {
 	static_assert(kCellBits == 2, "Insert is specified for 2 bit cell!");
 	int first_bucket_pos = CalculatePos(key, kTableNum) % bucket_num & ~(kTableNum - 1);
-	bool ans = 0;
 	int min_cnt = kCellMask, max_cnt = 0;
 	if constexpr(use_simd) {
 		__m512i* x = (__m512i*)(buckets + first_bucket_pos);
@@ -102,7 +103,7 @@ bool HyperBloomFilter::insert<2>(int key, double time) {
 
 			int old_tag = (buckets[bucket_pos] >> (kCellBits * cell_pos)) & kCellMask;
 			if (old_tag == 0)
-				ans = 1;
+				min_cnt = 0;
 			buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (kCellBits * cell_pos);
 		}
 	} else {
@@ -135,17 +136,17 @@ bool HyperBloomFilter::insert<2>(int key, double time) {
 			} else {
 				int old_tag = (buckets[bucket_pos] >> (kCellBits * cell_pos)) & kCellMask;
 				if (old_tag == 0)
-					ans = 1;
+					min_cnt = 0;
 				buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (kCellBits * cell_pos);
 			}
 		}
 	}
-	if constexpr(use_counter) {
-		return min_cnt == 0;
-	} else {
-		return ans;
-	}
+	return min_cnt;
 }
 
+template <size_t CellBits>
+bool HyperBloomFilter::insert(int key, double time) {
+	return insert_cnt<CellBits>(key, time) == 0;
+}
 
 #endif // _HYPERBLOOMFILTER_H_
