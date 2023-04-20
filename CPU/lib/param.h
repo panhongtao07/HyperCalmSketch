@@ -11,7 +11,4 @@
 
 using namespace std;
 
-#define CalculateBucketPos(fp, CONSTANT_NUMBER) (((fp) * CONSTANT_NUMBER) >> 15)
-
-
 #endif // _PARAM_H_

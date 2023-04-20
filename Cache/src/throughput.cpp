@@ -1,7 +1,8 @@
 #include <cstring>
 #include <cstdint>
 #include <cstdlib>
-#include <assert.h>
+#include <ctime>
+#include <cassert>
 #include <vector>
 #include <set>
 #include <map>

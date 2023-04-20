@@ -1,6 +1,7 @@
 #ifndef _CLOCKSKETCH_H_
 #define _CLOCKSKETCH_H_
-#include "../lib/param.h"
+
+#include <cstring>
 #include <random>
 
 #define TABLE_NUM 4
@@ -80,7 +81,7 @@ public:
 
 private:
 	inline uint32_t CalculatePos(uint32_t key, int i) {
-		return CalculateBucketPos(key, seeds[i]);
+		return (key * seeds[i]) >> 15;
 	}
 };
 

@@ -4,9 +4,6 @@
 #include <immintrin.h>
 #include <random>
 
-#include "../lib/param.h"
-
-
 namespace {
 
 static constexpr size_t kCellBits = 2;
@@ -71,7 +68,7 @@ public:
 
 private:
 	inline uint32_t CalculatePos(uint32_t key, int i) {
-		return CalculateBucketPos(key, seeds[i]);
+		return (key * seeds[i]) >> 15;
 	}
 };
 
