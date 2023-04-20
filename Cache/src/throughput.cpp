@@ -1,12 +1,12 @@
-#include <string.h>
+#include <cstring>
 #include <cstdint>
 #include <cstdlib>
 #include <assert.h>
 #include <vector>
+#include <set>
 #include <map>
 #include <unordered_map>
 #include <list>
-#include <string.h>
 using namespace std;
 const int TOPK_THRESHOLD = 100;
 const double BATCH_TIME_THRESHOLD = 0.727 / 5e4;
