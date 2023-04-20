@@ -23,6 +23,7 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     int small = 0, middle = 0, large = 0;
     double sARE = 0, mARE = 0, lARE = 0;
     long long sTAE = 0, mTAE = 0, lTAE = 0;
+    int large_acc = 0, report_large = 0;
     for (int i = 0; i < input.size(); ++i) {
         auto &[key, time] = input[i];
         int raw_real_size = realtime_sizes[i];
@@ -36,6 +37,10 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
         if (raw_real_size > overflow_limit) {
             ++overflow_cnt;
             if (!diff) ++overflow_acc;
+        }
+        if (size >= large_thereshold) {
+            ++report_large;
+            if (!diff) ++large_acc;
         }
         if (real_size <= small_thereshold) {
             ++small;
@@ -63,6 +68,9 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     printf("ARE: %.5lf, AAE: %.3lf\n", ARE, AAE);
     printf("Thereshold: %d < middle < %d\n", small_thereshold, large_thereshold);
     printf("Small: %d, Middle: %d, Large: %d\n", small, middle, large);
+    printf("Large precision: %.2lf%%, recall: %.2lf%%\n",
+           double(large_acc) / report_large * 100,
+           double(large_acc) / large * 100);
     printf("sARE: %.5lf, sAAE: %.3lf, sTAE: %lld\n", sARE, double(sTAE) / small, sTAE);
     printf("mARE: %.5lf, mAAE: %.3lf, mTAE: %lld\n", mARE, double(mTAE) / middle, mTAE);
     printf("lARE: %.5lf, lAAE: %.3lf, lTAE: %lld\n", lARE, double(lTAE) / large, lTAE);
