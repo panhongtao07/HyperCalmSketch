@@ -1,7 +1,6 @@
 #ifndef _CALMSPACESAVING_H_
 #define _CALMSPACESAVING_H_
 
-#include <cstdint>
 #include <cstdlib>
 #include <vector>
 

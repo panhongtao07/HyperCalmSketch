@@ -1,18 +1,18 @@
 #include <cstring>
-#include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 #include <ctime>
 #include <cassert>
 #include <vector>
 #include <set>
-#include <map>
-#include <unordered_map>
-#include <list>
+
 using namespace std;
+
 const int TOPK_THRESHOLD = 100;
 const double BATCH_TIME_THRESHOLD = 0.727 / 5e4;
 const double UNIT_TIME = BATCH_TIME_THRESHOLD * 10;
 const double addpre = UNIT_TIME * 30;
+
 #include "../../CPU/ComparedAlgorithms/clockSketch.h"
 #include "../../CPU/ComparedAlgorithms/groundtruth.h"
 #include "../../CPU/HyperCalm/HyperBloomFilter.h"

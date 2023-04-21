@@ -1,9 +1,6 @@
-#include <string.h>
-#include <cstdint>
 #include <cstdlib>
-#include <assert.h>
+#include <cassert>
 #include <vector>
-#include <map>
 using namespace std;
 
 #include <boost/program_options.hpp>

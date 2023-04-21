@@ -1,12 +1,10 @@
-#include <string.h>
-#include <cstdint>
+#include <cstring>
 #include <cstdlib>
-#include <assert.h>
+#include <cstdio>
+#include <cassert>
 #include <vector>
-#include <map>
-#include <unordered_map>
+#include <set>
 #include <list>
-#include <string.h>
 using namespace std;
 
 static double BATCH_TIME_THRESHOLD = 0.727 / 5e4;
