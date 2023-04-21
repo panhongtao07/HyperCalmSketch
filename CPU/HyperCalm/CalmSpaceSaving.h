@@ -54,16 +54,17 @@ protected:
 	int LRU_queue_head;
 	const int count_threshold, LRU_queue_size;
 
+	// record new key to circular array, remove old key from hash table
 	void array_push(uint32_t new_key) {
 		uint32_t old_key = circular_array[circular_array_head];
+		circular_array[circular_array_head] = new_key;
+		(++circular_array_head) %= circular_array_size;
 		if (old_key) {
 			auto itr = hash_table.find(old_key);
 			if (!--(itr->second.count)) {
 				hash_table.erase(itr);
 			}
 		}
-		circular_array[circular_array_head] = new_key;
-		(++circular_array_head) %= circular_array_size;
 	}
 
 	void append_new_key(uint32_t key, int16_t delta, float time, int freq,
@@ -297,6 +298,7 @@ public:
 		return 1;
 	}
 
+	// Return <<key, delta>, frequency> key-value pairs
 	vector<pair<pair<int, int16_t>, int>> get_top_k(int k) {
 		vector<pair<pair<int, int16_t>, int>> ans(k);
 

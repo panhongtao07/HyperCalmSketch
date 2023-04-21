@@ -90,22 +90,20 @@ int main(int argc, char** argv) {
 	int corret_count = 0;
 	double sae = 0, sre = 0;
 	auto check = [&](auto sketch) {
-		for (int i = 0; i < (int)input.size(); ++i) {
-			auto pr = input[i];
-			auto tkey = pr.first;
-			auto ttime = pr.second;
+		for (auto &[tkey, ttime] : input) {
 			sketch.insert(tkey, ttime);
 		}
 		auto our = sketch.get_top_k(TOPK_THRESHOLD);
 		sort(our.begin(), our.end());
 		int j = 0;
-		for (auto x: our) {
-			while (j + 1 < int(ans.size()) && ans[j].first < x.first)
+		for (auto &[key, freq]: our) {
+			while (j + 1 < ans.size() && ans[j].first < key)
 				++j;
-			if (j < int(ans.size()) && ans[j].first == x.first) {
+			if (j < ans.size() && ans[j].first == key) {
 				++corret_count;
-				sae += abs(ans[j].second - x.second);
-				sre += abs(ans[j].second - x.second) / double(ans[j].second);
+				auto diff = abs(ans[j].second - freq);
+				sae += diff;
+				sre += diff / double(ans[j].second);
 			}
 		}
 	};
