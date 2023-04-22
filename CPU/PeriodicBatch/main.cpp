@@ -3,76 +3,19 @@
 #include <vector>
 using namespace std;
 
-#include <boost/program_options.hpp>
+#include "params.h"
 
-#include "../datasets/trace.h"
 #include "../ComparedAlgorithms/ClockUSS.h"
 #include "../HyperCalm/HyperCalm.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
-using namespace boost::program_options;
-
-string fileName;
-int sketchName;
-double BATCH_TIME, UNIT_TIME;
-bool verbose = false;
-int repeat_time = 1, TOPK_THRESHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 5e5;
-
-void ParseArgs(int argc, char** argv) {
-	options_description opts("Options");
-	opts.add_options()
-		("fileName,f", value<string>()->required(), "file name")
-		("sketchName,s", value<int>()->required(), "sketch name")
-		("time,t", value<int>()->required(), "repeat time")
-		("topk,k", value<int>()->required(), "topk")
-		("batch_size,l", value<int>()->required(), "batch size threshold")
-		("memory,m", value<int>()->required(), "memory")
-		("batch_time,b", value<double>()->required(), "batch time")
-		("unit_time,u", value<double>()->required(),"unit time")
-		("verbose,V", "show verbose output");
-	variables_map vm;
-
-	store(parse_command_line(argc, argv, opts), vm);
-	if (vm.count("fileName")) {
-		fileName = vm["fileName"].as<string>();
-	} else {
-		printf("please use -f to specify the path of dataset.\n");
-		exit(0);
-	}
-	if (vm.count("sketchName")) {
-		sketchName = vm["sketchName"].as<int>();
-		if (sketchName < 1 || sketchName > 2) {
-			printf("sketchName < 1 || sketchName > 2\n");
-			exit(0);
-		}
-	} else {
-		printf("please use -s to specify the name of sketch.\n");
-		exit(0);
-	}
-	if (vm.count("time"))
-		repeat_time = vm["time"].as<int>();
-	if (vm.count("topk"))
-		TOPK_THRESHOLD = vm["topk"].as<int>();
-	if (vm.count("batch_size"))
-		BATCH_SIZE_LIMIT = vm["batch_size"].as<int>();
-	if (vm.count("memory"))
-		memory = vm["memory"].as<int>();
-	if (vm.count("batch_time"))
-		BATCH_TIME = vm["batch_time"].as<double>();
-	if (vm.count("unit_time"))
-		UNIT_TIME = vm["unit_time"].as<double>();
-	if (vm.count("verbose"))
-		verbose = true;
-}
+extern void ParseArgs(int argc, char** argv);
+extern vector<pair<uint32_t, float>> load_data(const string& fileName);
 
 int main(int argc, char** argv) {
 	ParseArgs(argc, argv);
 	printf("---------------------------------------------\n");
-	vector<pair<uint32_t, float>> input;
-	if (fileName.back() == 't')
-		input = loadCAIDA(fileName.c_str());
-	else
-		input = loadCRITEO(fileName.c_str());
+	auto input = load_data(fileName);
 	printf("---------------------------------------------\n");
 	groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
 	groundtruth::item_count(input);
