@@ -6,7 +6,7 @@ using namespace std;
 extern void ParseArgs(int argc, char** argv);
 extern vector<pair<uint32_t, float>> load_data(const string& fileName);
 
-extern void periodic_test(vector<pair<uint32_t, float>> input);
+extern void periodic_test(const vector<pair<uint32_t, float>>& input);
 
 int main(int argc, char** argv) {
 	ParseArgs(argc, argv);

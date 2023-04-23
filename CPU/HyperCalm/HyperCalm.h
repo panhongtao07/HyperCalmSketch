@@ -7,7 +7,7 @@
 class HyperCalm {
 private:
 	CalmSpaceSaving css;
-	HyperBloomFilter hbf;
+	HyperBloomFilter<> hbf;
 
 public:
 #define memory2 min(memory / 2, 50000)
@@ -21,7 +21,7 @@ public:
 		bool b = hbf.insert(key, time);
 		css.insert(key, time, b);
 	}
-	vector<pair<pair<int, int16_t>, int>> get_top_k(int k) {
+	vector<pair<pair<int, int16_t>, int>> get_top_k(int k) const {
 		return css.get_top_k(k);
 	}
 };

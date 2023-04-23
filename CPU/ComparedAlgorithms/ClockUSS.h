@@ -21,7 +21,7 @@ public:
 		bool b = cs.insert(key, time);
 		uss.insert(key, time, b);
 	}
-	vector<pair<pair<int, int16_t>, int>> get_top_k(int k) {
+	vector<pair<pair<int, int16_t>, int>> get_top_k(int k) const {
 		return uss.get_top_k(k);
 	}
 };

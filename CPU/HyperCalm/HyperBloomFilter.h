@@ -57,7 +57,7 @@ private:
 
 template <size_t CellBits>
 HyperBloomFilter<CellBits>::HyperBloomFilter(
-	uint32_t memory, double time_threshold, int seed = 123
+	uint32_t memory, double time_threshold, int seed
 ) : counters(nullptr), time_threshold(time_threshold) {
 	uint32_t memsize = memory / sizeof(uint64_t);
 	bucket_num = memsize;
@@ -70,7 +70,7 @@ HyperBloomFilter<CellBits>::HyperBloomFilter(
 	for (int i = 0; i <= TableNum; ++i) {
 		seeds[i] = rng();
 	}
-	printf("d = %d\t (Number of arrays in HyperBF)\n",bucket_num);
+	printf("d = %d\t (Number of arrays in HyperBF)\n", bucket_num);
 }
 
 template <>
@@ -143,7 +143,7 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 
 template <size_t CellBits>
 bool HyperBloomFilter<CellBits>::insert(int key, double time) {
-	return insert_cnt<CellBits>(key, time) == 0;
+	return insert_cnt(key, time) == 0;
 }
 
 #endif // _HYPERBLOOMFILTER_H_

@@ -15,7 +15,7 @@ using PeriodicKey = pair<int, int16_t>;
 
 template <typename Sketch>
 tuple<int, long long, double> single_test(
-    const Sketch& sketch,
+    Sketch&& sketch,
     const vector<pair<uint32_t, float>>& input,
     const vector<pair<PeriodicKey, int>>& ans
 ) {
