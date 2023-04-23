@@ -228,19 +228,16 @@ public:
 
         printf("c = %d\t (Length of the TimeRecorder queue)\n",circular_array_size);
         printf("w = %d\t (Length of the LRU queue in CalmSS)\n",q_size);
-		SS_nodes = new SS_Node[capacity + 1];
-		memset(SS_nodes, 0, (capacity + 1) * sizeof(SS_Node));
+		SS_nodes = new SS_Node[capacity + 1] {};
 		now_element = 0;
 		SS_nodes[0].val = -1;
 		SS_nodes[0].val_parent = SS_nodes;
 		tail_node = SS_nodes;
 
-		circular_array = new uint32_t[circular_array_size];
-		memset(circular_array, 0, circular_array_size * sizeof(uint32_t));
+		circular_array = new uint32_t[circular_array_size] {};
 		circular_array_head = 0;
 
-		LRU_queue = new LRU_Node[q_size];
-		memset(LRU_queue, 0, q_size * sizeof(LRU_Node));
+		LRU_queue = new LRU_Node[q_size] {};
 		LRU_queue_head = 0;
 	}
 	~CalmSpaceSaving() {

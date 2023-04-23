@@ -39,6 +39,7 @@ public:
 	static constexpr bool use_simd = false;
 #endif
 	static constexpr bool use_counter = !use_simd;
+	static constexpr size_t MaxReportSize = CellMask;
 
 	HyperBloomFilter(uint32_t memory, double time_threshold, int seed = 123);
 	~HyperBloomFilter() {
