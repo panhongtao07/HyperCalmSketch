@@ -12,14 +12,13 @@ using namespace std;
 
 using PeriodicKey = pair<int, int16_t>;
 
-void periodic_size_test(const vector<pair<uint32_t, float>>& input) {
-    constexpr size_t BatchSize = 3;
-    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
-    auto batches = groundtruth::batch(input, BATCH_TIME, BatchSize).first;
-    auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
-    printf("BATCH_TIME = %f\n", BATCH_TIME);
-    printf("UNIT_TIME = %f\n", UNIT_TIME);
-    printf("---------------------------------------------\n");
+constexpr size_t BatchSize = 3;
+
+template <bool use_counter>
+void periodic_size_test(
+    const vector<pair<uint32_t, float>>& input,
+    vector<pair<pair<int, int16_t>, int>>& ans
+) {
     if (sketchName != 1) {
         printf("Test is not implemented");
     }
@@ -32,7 +31,10 @@ void periodic_size_test(const vector<pair<uint32_t, float>>& input) {
         tuple<int, long long, double> res;
         HyperCalm sketch(BATCH_TIME, UNIT_TIME, memory, t);
         for (auto &[tkey, ttime] : input) {
-            sketch.insert_filter<BatchSize>(tkey, ttime); // 4 contains overflow batches
+            if constexpr (use_counter)
+                sketch.insert_filter<BatchSize>(tkey, ttime);
+            else
+                sketch.insert(tkey, ttime);
         }
         vector<pair<PeriodicKey, int>> our = sketch.get_top_k(TOPK_THRESHOLD);
         sort(our.begin(), our.end());
@@ -53,7 +55,10 @@ void periodic_size_test(const vector<pair<uint32_t, float>>& input) {
         uint64_t(end_time.tv_sec - start_time.tv_sec) * 1000000000 +
         (end_time.tv_nsec - start_time.tv_nsec);
     printf("---------------------------------------------\n");
-    printf("Results:\n");
+    if constexpr (use_counter)
+        printf("Results with counter:\n");
+    else
+        printf("Results without counter:\n");
     printf("Average Speed:\t %f M/s\n",
            1e3 * input.size() * repeat_time / time_ns);
     printf("Recall Rate:\t %f\n",
@@ -71,6 +76,14 @@ int main(int argc, char** argv) {
     auto input = load_data(fileName);
     printf("---------------------------------------------\n");
     groundtruth::item_count(input);
-    periodic_size_test(input);
+    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
+    auto batches = groundtruth::batch(input, BATCH_TIME, BatchSize).first;
+    auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
+    printf("BATCH_TIME = %f\n", BATCH_TIME);
+    printf("UNIT_TIME = %f\n", UNIT_TIME);
+    printf("---------------------------------------------\n");
+    periodic_size_test<true>(input, ans);
+    printf("---------------------------------------------\n");
+    periodic_size_test<false>(input, ans);
     printf("---------------------------------------------\n");
 }
