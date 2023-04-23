@@ -8,7 +8,7 @@ ifeq ($(OBJ_LOCAL), 1)
 	obj := ../dst/$(obj)
 endif
 
-$(obj): main.cpp parse.cpp
+$(obj): main.cpp parse.cpp periodic_test.cpp
 	g++ $^ $(XXFLAGS) -o $@
 
 clean: 
