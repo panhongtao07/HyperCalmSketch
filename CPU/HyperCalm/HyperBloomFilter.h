@@ -69,7 +69,7 @@ HyperBloomFilter<CellBits, counterType>::HyperBloomFilter(
 	uint32_t memory, double time_threshold, int seed
 ) : counters(nullptr), time_threshold(time_threshold) {
 	uint32_t memsize = memory / sizeof(uint64_t);
-	bucket_num = memsize;
+	bucket_num = memsize - memsize % TableNum;
 	buckets = new (align_val_t { 64 }) uint64_t[bucket_num] {};
 	if constexpr(use_counter) {
 		// Use extra memory to store counter, just testing, record it later
@@ -170,7 +170,7 @@ public:
 	double time_threshold;
 	uint32_t bucket_num;
 	uint32_t seeds[TableNum + 1];
-	static constexpr size_t MaxReportSize = CellMask;
+	static constexpr size_t MaxReportSize = 3;
 
 	HyperBloomFilter(uint32_t memory, double time_threshold, int seed = 123) :
 		time_threshold(time_threshold), bucket_num(memory / sizeof(uint64_t)) {
@@ -190,7 +190,7 @@ public:
 
 	int insert_cnt(int key, double time) {
 		int first_bucket_pos = CalculatePos(key, TableNum) % bucket_num & ~(TableNum - 1);
-		int min_cnt = CellMask, max_cnt = 0;
+		int min_cnt = MaxReportSize, max_cnt = 0;
 		for (int i = 0; i < TableNum; ++i) {
 			int cell_pos = CalculatePos(key, i) % CellPerBucket;
 			int bucket_pos = (first_bucket_pos + i) * CellPerBucket;
@@ -199,7 +199,7 @@ public:
 			int ban_tag = now_tag % 3 + 1;
 
 			for (int j = 0; j < CellPerBucket; ++j) {
-				if (buckets[bucket_pos + j] == ban_tag_m1) {
+				if (buckets[bucket_pos + j] == ban_tag) {
 					buckets[bucket_pos + j] = 0;
 					counters[bucket_pos + j] = 0;
 				}

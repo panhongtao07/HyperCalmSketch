@@ -23,6 +23,7 @@ void periodic_size_test(
         printf("Test is not implemented");
     }
     sort(ans.begin(), ans.end());
+    vector<pair<PeriodicKey, int>> our;
     int corret_count = 0;
     double sae = 0, sre = 0;
     timespec start_time, end_time;
@@ -36,7 +37,7 @@ void periodic_size_test(
             else
                 sketch.insert(tkey, ttime);
         }
-        vector<pair<PeriodicKey, int>> our = sketch.get_top_k(TOPK_THRESHOLD);
+        our = sketch.get_top_k(TOPK_THRESHOLD);
         sort(our.begin(), our.end());
         int j = 0;
         for (auto &[key, freq] : our) {
@@ -79,6 +80,7 @@ int main(int argc, char** argv) {
     groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
     auto batches = groundtruth::batch(input, BATCH_TIME, BatchSize).first;
     auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
+    printf("Answer batchsize = %ld\n", BatchSize);
     printf("BATCH_TIME = %f\n", BATCH_TIME);
     printf("UNIT_TIME = %f\n", UNIT_TIME);
     printf("---------------------------------------------\n");

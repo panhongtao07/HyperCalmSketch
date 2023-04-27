@@ -25,6 +25,7 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     double sARE = 0, mARE = 0, lARE = 0;
     long long sTAE = 0, mTAE = 0, lTAE = 0;
     int large_acc = 0, report_large = 0;
+    int small_acc = 0;
     for (int i = 0; i < input.size(); ++i) {
         auto &[key, time] = input[i];
         int raw_real_size = realtime_sizes[i];
@@ -45,6 +46,7 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
         }
         if (real_size <= small_thereshold) {
             ++small;
+            if (!diff) ++small_acc;
             sTAE += diff;
             sARE += relative_error;
         } else if (real_size >= large_thereshold) {
@@ -69,6 +71,7 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     printf("ARE: %.5lf, AAE: %.3lf\n", ARE, AAE);
     printf("Thereshold: %d < middle < %d\n", small_thereshold, large_thereshold);
     printf("Small: %d, Middle: %d, Large: %d\n", small, middle, large);
+    printf("Small recall: %.2lf%%\n", double(small_acc) / small * 100);
     printf("Large precision: %.2lf%%, recall: %.2lf%%\n",
            double(large_acc) / report_large * 100,
            double(large_acc) / large * 100);
