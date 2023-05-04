@@ -6,8 +6,9 @@
 
 class HyperCalm {
 private:
+    using HBF = HyperBloomFilter<>;
     CalmSpaceSaving css;
-    HyperBloomFilter<> hbf;
+    HBF hbf;
 
 public:
 #define memory2 min(memory / 2, 50000)
@@ -24,7 +25,7 @@ public:
 
     template <size_t min_size>
     void insert_filter(int key, double time) {
-        static_assert(min_size <= HyperBloomFilter<>::MaxReportSize);
+        static_assert(min_size <= HBF::MaxReportSize);
         int size = hbf.insert_cnt(key, time) + 1;
         if (size >= min_size)
             css.insert(key, time, size == min_size);

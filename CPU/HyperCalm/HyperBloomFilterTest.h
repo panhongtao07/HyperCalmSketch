@@ -2,6 +2,7 @@
 #define HYPER_BLOOM_FILTER_REF_H
 
 #include <random>
+#include <algorithm>
 
 namespace HyperBF {
 
@@ -10,7 +11,8 @@ namespace HyperBF {
 // It's used for testing the accuracy of the HBF,
 // meanwhile also useful for understanding the original algorithm.
 template <size_t CellBits,
-          size_t _MaxReportSize = (1 << CellBits) - 1,
+          size_t CounterCellBits = CellBits,
+          size_t _MaxReportSize = (1 << CounterCellBits) - 1,
           size_t _CellPerBucket = sizeof(uint64_t) * 8 / CellBits>
 class TestModeHyperBF {
     static constexpr size_t CellPerBucket = _CellPerBucket;
@@ -39,9 +41,11 @@ public:
         delete[] counters;
     }
 
+    template <bool CM2Count = false>
     int insert_cnt(int key, double time) {
         int first_bucket_pos = CalculatePos(key, TableNum) % bucket_num & ~(TableNum - 1);
-        int min_cnt = MaxReportSize, max_cnt = 0;
+        int min_cnt = MaxReportSize;
+        vector<int> cnts;
         for (int i = 0; i < TableNum; ++i) {
             int cell_pos = CalculatePos(key, i) % CellPerBucket;
             int bucket_pos = (first_bucket_pos + i) * CellPerBucket;
@@ -57,11 +61,23 @@ public:
             }
             buckets[bucket_pos + cell_pos] = now_tag;
             int cnt = counters[bucket_pos + cell_pos];
-            max_cnt = max(max_cnt, cnt);
             min_cnt = min(min_cnt, cnt);
+            if constexpr (CM2Count) {
+                int delta = CalculatePos(key, i + 1) % 2 ? 1 : -1;
+                cnts.push_back(cnt * delta);
+                cnt += delta;
+                cnt = max(0, min(cnt, int(MaxReportSize)));
+                counters[bucket_pos + cell_pos] = cnt;
+                continue;
+            }
             if (cnt != MaxReportSize) {
                 ++counters[bucket_pos + cell_pos];
             }
+        }
+        if constexpr (CM2Count) {
+            sort(cnts.begin(), cnts.end());
+            int cnt = cnts[cnts.size() / 2];
+            return max(0, min(cnt, int(MaxReportSize)));
         }
         return min_cnt;
     }
