@@ -1,5 +1,4 @@
 #include <vector>
-#include <string>
 
 #include "params.h"
 
@@ -16,4 +15,5 @@ int main(int argc, char** argv) {
 	auto input = load_data(fileName);
 	printf("---------------------------------------------\n");
 	hit_test(input);
+	printf("---------------------------------------------\n");
 }

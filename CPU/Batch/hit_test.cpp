@@ -86,5 +86,4 @@ void hit_test(const vector<pair<uint32_t, float>>& input) {
 		printf("Detail:\t %d correct, %d wrong, %d missed\n",
 				correct_count, tot_our_size - correct_count, int(objects.size()) - object_count);
 	}
-	printf("---------------------------------------------\n");
 }
