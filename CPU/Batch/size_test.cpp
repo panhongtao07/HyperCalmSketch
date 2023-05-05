@@ -14,13 +14,14 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     if (sketchName != 1) {
         printf("Test is not implemented");
     }
+    constexpr int cellbits = 2;
+    constexpr int overflow_limit = 1 << cellbits;
     HyperBloomFilter hbf(memory, BATCH_TIME, 0);
     printf("---------------------------------------------\n");
     printf("Realtime size test\n");
     double ARE = 0, AAE = 0;
-    constexpr int overflow_limit = 4;
     int acc_cnt = 0, overflow_cnt = 0, overflow_acc = 0;
-    constexpr int small_thereshold = 1, large_thereshold = 4;
+    constexpr int small_thereshold = 1, large_thereshold = overflow_limit;
     int small = 0, middle = 0, large = 0;
     double sARE = 0, mARE = 0, lARE = 0;
     long long sTAE = 0, mTAE = 0, lTAE = 0;
@@ -72,9 +73,11 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     printf("Thereshold: %d < middle < %d\n", small_thereshold, large_thereshold);
     printf("Small: %d, Middle: %d, Large: %d\n", small, middle, large);
     printf("Small recall: %.2lf%%\n", double(small_acc) / small * 100);
-    printf("Large precision: %.2lf%%, recall: %.2lf%%\n",
+    double pre = double(large_acc) / report_large * 100, rec = double(large_acc) / large * 100;
+    printf("Large precision: %.2lf%%, recall: %.2lf%%, F1: %.2lf%%\n",
            double(large_acc) / report_large * 100,
-           double(large_acc) / large * 100);
+           double(large_acc) / large * 100,
+           2 * pre * rec / (pre + rec));
     printf("sARE: %.5lf, sAAE: %.3lf, sTAE: %lld\n", sARE, double(sTAE) / small, sTAE);
     printf("mARE: %.5lf, mAAE: %.3lf, mTAE: %lld\n", mARE, double(mTAE) / middle, mTAE);
     printf("lARE: %.5lf, lAAE: %.3lf, lTAE: %lld\n", lARE, double(lTAE) / large, lTAE);
