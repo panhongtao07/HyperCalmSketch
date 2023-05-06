@@ -12,7 +12,7 @@ namespace HyperBF {
 // meanwhile also useful for understanding the original algorithm.
 template <size_t CellBits,
           size_t CounterCellBits = CellBits,
-          size_t _MaxReportSize = (1 << CounterCellBits) - 1,
+          size_t _MaxReportSize = (1 << CounterCellBits),
           size_t _CellPerBucket = sizeof(uint64_t) * 8 / CellBits>
 class TestModeHyperBF {
     static constexpr size_t CellPerBucket = _CellPerBucket;
@@ -33,6 +33,10 @@ public:
         for (int i = 0; i <= TableNum; ++i) {
             seeds[i] = rng();
         }
+        if (memory >= 1024)
+            printf("Memory = %.1f KB\t (Memory used in HyperBF)\n", memory / 1000.0);
+        else
+            printf("Memory = %u B\t (Memory used in HyperBF)\n", memory);
         printf("d = %d\t (Number of mimic arrays in HyperBF)\n", bucket_num);
     }
 

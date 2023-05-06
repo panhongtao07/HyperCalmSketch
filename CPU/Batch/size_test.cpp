@@ -16,7 +16,7 @@ void size_test(const vector<pair<uint32_t, float>>& input) {
     }
     constexpr int cellbits = 2;
     constexpr int overflow_limit = 1 << cellbits;
-    HyperBloomFilter hbf(memory, BATCH_TIME, 0);
+    HyperBloomFilter<cellbits, HyperBF::FastSync> hbf(memory, BATCH_TIME, 0);
     printf("---------------------------------------------\n");
     printf("Realtime size test\n");
     double ARE = 0, AAE = 0;

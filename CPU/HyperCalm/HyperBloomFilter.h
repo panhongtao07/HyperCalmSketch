@@ -23,17 +23,27 @@ namespace HyperBF {
 	enum CounterType {
 		None,
 		SyncWithBucket,
-		Test,
+		FastSync,
 	};
 };
 
 
 template <size_t CellBits = 2, HyperBF::CounterType counterType = HyperBF::SyncWithBucket>
 class HyperBloomFilter {
+	static constexpr size_t counter_type = counterType;
 	static constexpr size_t CellPerBucket = sizeof(uint64_t) * 8 / CellBits;
 	static constexpr uint64_t CellMask = (1 << CellBits) - 1;
 	static constexpr size_t TableNum = 8;
 	static_assert(kStateNum + 1 <= (1 << CellBits));
+
+	static constexpr size_t getMaxReportSize() {
+		if constexpr(counterType == HyperBF::None)
+			return 1;
+		else if constexpr(counterType == HyperBF::FastSync)
+			return CellMask;
+		else
+			return CellMask + 1;
+	}
 public:
 	uint64_t* buckets;
 	uint64_t* counters;
@@ -46,7 +56,7 @@ public:
 	static constexpr bool use_simd = false;
 #endif
 	static constexpr bool use_counter = counterType != HyperBF::None;
-	static constexpr size_t MaxReportSize = CellMask;
+	static constexpr size_t MaxReportSize = getMaxReportSize();
 
 	HyperBloomFilter(uint32_t memory, double time_threshold, int seed = 123);
 	~HyperBloomFilter() {
@@ -79,6 +89,10 @@ HyperBloomFilter<CellBits, counterType>::HyperBloomFilter(
 	for (int i = 0; i <= TableNum; ++i) {
 		seeds[i] = rng();
 	}
+	if (memory >= 1024)
+		printf("Memory = %.1f KB\t (Memory used in HyperBF)\n", memory / 1000.0);
+	else
+		printf("Memory = %u B\t (Memory used in HyperBF)\n", memory);
 	printf("d = %d\t (Number of arrays in HyperBF)\n", bucket_num);
 }
 
@@ -86,7 +100,7 @@ template <>
 int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 	constexpr size_t CellBits = 2;
 	int first_bucket_pos = CalculatePos(key, TableNum) % bucket_num & ~(TableNum - 1);
-	int min_cnt = CellMask, max_cnt = 0;
+	int min_cnt = MaxReportSize, max_cnt = 0;
 	if constexpr(use_simd) {
 		__m512i* x = (__m512i*)(buckets + first_bucket_pos);
 		uint64_t b[8];
@@ -101,6 +115,7 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 		is_ban_bits = _mm512_and_epi64(is_ban_bits, _mm512_set1_epi64(ODD_BIT_MASK));
 		__m512i mask = _mm512_or_epi64(is_ban_bits, _mm512_slli_epi64(is_ban_bits, 1));
 		*x = _mm512_and_epi64(*x, mask);
+		// TODO: support counter
 		for (int i = 0; i < TableNum; ++i) {
 			int cell_pos = CalculatePos(key, i) % CellPerBucket;
 			int bucket_pos = (first_bucket_pos + i);
@@ -126,24 +141,42 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 			is_ban_bits &= ODD_BIT_MASK;
 			// if all(same), clear
 			uint64_t mask = is_ban_bits | (is_ban_bits << 1);
-			buckets[bucket_pos] &= mask;
+			uint64_t bucket = buckets[bucket_pos];
+			bucket &= mask;
 
-			if constexpr(use_counter) {
-				buckets[bucket_pos] &= ~(CellMask << (CellBits * cell_pos));
-				buckets[bucket_pos] |= uint64_t(now_tag) << (CellBits * cell_pos);
-
-				counters[bucket_pos] &= mask;
-				int cnt = counters[bucket_pos] >> (CellBits * cell_pos) & CellMask;
-				max_cnt = max(max_cnt, cnt);
-				min_cnt = min(min_cnt, cnt);
-				if (cnt != CellMask) {
-					counters[bucket_pos] ^= uint64_t(cnt + 1 ^ cnt) << (CellBits * cell_pos);
-				}
-			} else {
-				int old_tag = (buckets[bucket_pos] >> (CellBits * cell_pos)) & CellMask;
+			auto move_bits = CellBits * cell_pos;
+			if constexpr(counter_type == HyperBF::None) {
+				int old_tag = (bucket >> move_bits) & CellMask;
 				if (old_tag == 0)
 					min_cnt = 0;
-				buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (CellBits * cell_pos);
+				bucket ^= uint64_t(now_tag ^ old_tag) << move_bits;
+				buckets[bucket_pos] = bucket;
+			} else {
+				bool with_header = false;
+				if constexpr(counter_type == HyperBF::SyncWithBucket) {
+					with_header = (bucket & (CellMask << move_bits));
+				}
+				bucket &= ~(CellMask << move_bits);
+				bucket |= uint64_t(now_tag) << move_bits;
+				buckets[bucket_pos] = bucket;
+
+				uint64_t counter = counters[bucket_pos];
+				counter &= mask;
+				if constexpr(counter_type == HyperBF::SyncWithBucket) {
+					if (!with_header) {
+						min_cnt = 0;
+						// leave the counter empty, state will record the header,
+						// so that we can know whether it's a new batch.
+						counters[bucket_pos] = counter;
+						continue;
+					}
+				}
+				int cnt = (counter >> move_bits) & CellMask;
+				min_cnt = min(min_cnt, cnt + with_header); // add the header
+				if (cnt != CellMask) {
+					counter ^= uint64_t(cnt + 1 ^ cnt) << move_bits;
+				}
+				counters[bucket_pos] = counter;
 			}
 		}
 	}
@@ -156,11 +189,5 @@ bool HyperBloomFilter<CellBits, counterType>::insert(int key, double time) {
 }
 
 #include "HyperBloomFilterTest.h"
-
-template <size_t CellBits>
-class HyperBloomFilter<CellBits, HyperBF::Test> :
-	public HyperBF::TestModeHyperBF<CellBits> {
-	using HyperBF::TestModeHyperBF<CellBits>::TestModeHyperBF;
-};
 
 #endif // _HYPERBLOOMFILTER_H_
