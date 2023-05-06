@@ -10,7 +10,7 @@ using namespace std;
 #include "../HyperCalm/HyperCalm.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
-using PeriodicKey = pair<int, int16_t>;
+using groundtruth::PeriodicKey;
 
 constexpr size_t BatchSize = 3;
 

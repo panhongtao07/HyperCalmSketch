@@ -8,7 +8,9 @@ using namespace std;
 #include "../HyperCalm/HyperBloomFilter.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
-void size_test(const vector<pair<uint32_t, float>>& input) {
+using groundtruth::Record;
+
+void size_test(const vector<Record>& input) {
     groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
     auto realtime_sizes = groundtruth::realtime_size(input, BATCH_TIME);
     if (sketchName != 1) {
