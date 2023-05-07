@@ -2,12 +2,12 @@
 #define _CLOCKUSS_H_
 
 #include "UnbiasedSpaceSaving.h"
-#include "clockSketch.h"
+#include "ClockSketch.h"
 
 class ClockUSS {
 private:
 	UnbiasedSpaceSaving uss;
-	clockSketch cs;
+	ClockSketch<> cs;
 
 public:
 #define memory2 min(memory / 2, 50000)

@@ -7,7 +7,7 @@
 using namespace std;
 
 #include "../HyperCalm/HyperBloomFilter.h"
-#include "../ComparedAlgorithms/clockSketch.h"
+#include "../ComparedAlgorithms/ClockSketch.h"
 #include "../ComparedAlgorithms/SWAMP.h"
 #include "../ComparedAlgorithms/TOBF.h"
 #include "../ComparedAlgorithms/groundtruth.h"
@@ -64,7 +64,7 @@ void hit_test(const vector<Record>& input) {
 		if (sketchName == 1)
 			res = single_hit_test(HyperBloomFilter(memory, BATCH_TIME, t),input, objects, batches);
 		else if (sketchName == 2)
-			res = single_hit_test(clockSketch(memory, BATCH_TIME, t), input, objects, batches);
+			res = single_hit_test(ClockSketch(memory, BATCH_TIME, t), input, objects, batches);
 		else if (sketchName == 3)
 			res = single_hit_test(TOBF(memory, BATCH_TIME, 4, t), input, objects, batches);
 		else if (sketchName == 4)

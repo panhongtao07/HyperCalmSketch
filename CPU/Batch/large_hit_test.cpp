@@ -7,7 +7,7 @@
 using namespace std;
 
 #include "../HyperCalm/HyperBloomFilter.h"
-#include "../ComparedAlgorithms/clockSketch.h"
+#include "../ComparedAlgorithms/ClockSketch.h"
 #include "../ComparedAlgorithms/SWAMP.h"
 #include "../ComparedAlgorithms/TOBF.h"
 #include "../ComparedAlgorithms/groundtruth.h"
