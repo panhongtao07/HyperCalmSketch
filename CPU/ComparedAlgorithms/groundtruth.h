@@ -12,6 +12,7 @@ using Index = int;
 using ItemKey = uint32_t;
 using TimeStamp = float;
 using Record = pair<ItemKey, TimeStamp>;
+using BatchTimeRange = pair<Index, Index>;
 using PeriodicKey = pair<int, int16_t>;
 
 enum RecordPos : int {
@@ -113,6 +114,35 @@ pair<vector<Index>, vector<Index>> batch(
 }
 
 #undef REC_POS
+
+map<ItemKey, vector<BatchTimeRange>> item_batches(
+	const vector<Record>& input,
+	double time_threshold,
+	int size_threshold
+) {
+	map<ItemKey, Index> batch_start, batch_end;
+	map<ItemKey, vector<BatchTimeRange>> item_batches;
+	map<ItemKey, int> batch_size;
+	auto realtime_sizes = realtime_size(input, time_threshold);
+	for (int i = 0; i < realtime_sizes.size(); ++i) {
+		auto cnt = realtime_sizes[i];
+		auto key = input[i].first;
+		if (cnt == 1) {
+			if (batch_size[key] >= size_threshold) {
+				item_batches[key].push_back({batch_start[key], batch_end[key]});
+			}
+			batch_start[key] = i;
+		}
+		batch_end[key] = i;
+		batch_size[key] = cnt;
+	}
+	for (auto& [key, size] : batch_size) {
+		if (size >= size_threshold) {
+			item_batches[key].push_back({batch_start[key], batch_end[key]});
+		}
+	}
+	return item_batches;
+}
 
 vector<pair<PeriodicKey, int>> topk(
 	const vector<Record>& input,
