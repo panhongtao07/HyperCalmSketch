@@ -8,12 +8,16 @@
 
 namespace groundtruth {
 
+inline namespace type_info {
+
 using Index = int;
 using ItemKey = uint32_t;
 using TimeStamp = float;
 using Record = pair<ItemKey, TimeStamp>;
 using BatchTimeRange = pair<Index, Index>;
 using PeriodicKey = pair<int, int16_t>;
+
+}  // namespace type_info
 
 enum RecordPos : int {
 	START,

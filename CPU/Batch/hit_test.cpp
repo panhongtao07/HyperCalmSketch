@@ -12,12 +12,14 @@ using namespace std;
 #include "../ComparedAlgorithms/TOBF.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
+using namespace groundtruth::type_info;
+
 template <typename Sketch>
 tuple<int, int, int> single_hit_test(
 	Sketch&& sketch,
-	const vector<pair<uint32_t, float>>& input,
-	vector<int>& objects,
-	vector<int>& batches
+	const vector<Record>& input,
+	const vector<Index>& objects,
+	const vector<Index>& batches
 ) {
 	int object_count = 0, correct_count = 0, tot_our_size = 0;
 	int j = 0, k = 0;
@@ -40,7 +42,7 @@ tuple<int, int, int> single_hit_test(
 	return make_tuple(object_count, correct_count, tot_our_size);
 }
 
-void hit_test(const vector<pair<uint32_t, float>>& input) {
+void hit_test(const vector<Record>& input) {
 	groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
 	groundtruth::item_count(input);
 	auto [objects, batches] = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT);

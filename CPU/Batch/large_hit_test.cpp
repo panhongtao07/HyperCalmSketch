@@ -12,7 +12,7 @@ using namespace std;
 #include "../ComparedAlgorithms/groundtruth.h"
 
 
-using groundtruth::ItemKey, groundtruth::Record, groundtruth::BatchTimeRange;
+using namespace groundtruth::type_info;
 
 void printName(int sketchName) {
     if (sketchName == 1) {

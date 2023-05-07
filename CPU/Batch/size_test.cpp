@@ -86,7 +86,7 @@ void size_test(const vector<Record>& input) {
 }
 
 extern void ParseArgs(int argc, char** argv);
-extern vector<pair<uint32_t, float>> load_data(const string& fileName);
+extern vector<Record> load_data(const string& fileName);
 
 int main(int argc, char** argv) {
     ParseArgs(argc, argv);
