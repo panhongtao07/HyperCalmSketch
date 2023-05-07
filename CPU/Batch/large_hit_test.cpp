@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cassert>
+#include <ctime>
 
 #include "params.h"
 
@@ -57,31 +58,40 @@ tuple<int, int> single_test(
 void large_hit_test(const vector<Record>& input) {
     groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
     groundtruth::item_count(input);
+    timespec start_time, end_time;
+    uint64_t time_ns;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
     auto item_batches = groundtruth::item_batches(input, BATCH_TIME, BATCH_SIZE_LIMIT);
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    printf("groundtruth time:\t %f s\n", time_ns / 1e9);
     int total_count = 0;
     for (auto& [key, batches] : item_batches)
         total_count += int(batches.size());
     printf("---------------------------------------------\n");
     printName(sketchName);
-	timespec start_time, end_time;
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
     int correct_count = 0, report_count = 0;
     for (int t = 0; t < repeat_time; ++t) {
         tuple<int, int> res;
         if (sketchName == 1)
             res = single_test(HyperBloomFilter(memory, BATCH_TIME, t), input, item_batches);
-        else assert(0);
+        else if (sketchName == 3)
+            res = single_test(TOBF<true>(memory, BATCH_TIME, 4, t), input, item_batches);
+        else if (sketchName == 4)
+            res = single_test(SWAMP<int, float, true>(memory, BATCH_TIME), input, item_batches);
+        else assert(false);
         correct_count += get<0>(res);
         report_count += get<1>(res);
     }
     printf("---------------------------------------------\n");
-	clock_gettime(CLOCK_MONOTONIC, &end_time);
-	uint64_t time_ns = uint64_t(end_time.tv_sec - start_time.tv_sec) * 1000000000 + (end_time.tv_nsec - start_time.tv_nsec);
-	printf("Results:\n");
-	printf("Average Speed:\t %f M/s\n", 1e3 * input.size() * repeat_time / time_ns);
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    printf("Results:\n");
+    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    printf("Algorithm time:\t %f s\n", time_ns / 1e9);
+    printf("Average Speed:\t %f M/s\n", 1e3 * input.size() * repeat_time / time_ns);
     auto recall = 1.0 * correct_count / total_count / repeat_time;
     auto precision = 1.0 * correct_count / report_count / repeat_time;
-    printf("Results:\n");
     printf("Precision: %f, Recall: %f\n", precision, recall);
     if (verbose) {
         printf("F1 Score: %f\n", 2 * recall * precision / (recall + precision));
@@ -95,10 +105,10 @@ extern void ParseArgs(int argc, char** argv);
 extern vector<pair<uint32_t, float>> load_data(const string& fileName);
 
 int main(int argc, char** argv) {
-	ParseArgs(argc, argv);
-	printf("---------------------------------------------\n");
-	auto input = load_data(fileName);
-	printf("---------------------------------------------\n");
-	large_hit_test(input);
+    ParseArgs(argc, argv);
+    printf("---------------------------------------------\n");
+    auto input = load_data(fileName);
+    printf("---------------------------------------------\n");
+    large_hit_test(input);
     printf("---------------------------------------------\n");
 }

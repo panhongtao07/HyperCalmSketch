@@ -4,25 +4,26 @@
 #include <cstring>
 #include <random>
 
-#define TABLE_NUM 4
 #define S 4
 #define C (64 / S)
+
+template <bool use_counter = false>
 class clockSketch {
+	static constexpr size_t TableNum = 4;
 public:
 	uint64_t* buckets;
+	uint64_t* counters;
 	double time_threshold;
 	int64_t la_time;
 	uint32_t bucket_num, la_pos;
-	uint32_t seeds[TABLE_NUM + 1];
+	uint32_t seeds[TableNum + 1];
 
-	clockSketch(uint32_t memory, double time_threshold_, int seed = 233) {
+	clockSketch(uint32_t memory, double time_threshold, int seed = 233)
+		: counters(nullptr), time_threshold(time_threshold), la_time(0), la_pos(0) {
 		bucket_num = memory / sizeof(uint64_t);
-		time_threshold = time_threshold_;
-		buckets = new uint64_t[bucket_num];
-		memset(buckets, 0, bucket_num * sizeof(*buckets));
-		la_time = la_pos = 0;
+		buckets = new uint64_t[bucket_num] {};
 		mt19937 rng(seed);
-		for (int i = 0; i <= TABLE_NUM; ++i) {
+		for (int i = 0; i <= TableNum; ++i) {
 			seeds[i] = rng();
 		}
         printf(" %d\t (Number of arrays in Clock-Sketch)\n",bucket_num);
@@ -30,6 +31,7 @@ public:
 
 	~clockSketch() {
 		delete[] buckets;
+		delete[] counters;
 	}
 
 	bool insert(int key, double time) {
@@ -69,7 +71,7 @@ public:
 		}
 		la_time = nt;
 		bool ans = 0;
-		for (int i = 0; i < TABLE_NUM; ++i) {
+		for (int i = 0; i < TableNum; ++i) {
 			int pos = CalculatePos(key, i) % (bucket_num * C);
 			uint64_t v = uint64_t((1 << S) - 1) << (pos % C * S);
 			if ((buckets[pos / C] & v) == 0)
@@ -85,7 +87,6 @@ private:
 	}
 };
 
-#undef TABLE_NUM
 #undef S
 #undef C
 

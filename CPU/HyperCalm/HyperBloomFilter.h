@@ -32,6 +32,14 @@ class HyperBloomFilter {
 	static constexpr size_t TableNum = 8;
 	static_assert(kStateNum + 1 <= (1 << CellBits));
 
+	static constexpr size_t getSizePerBucket() {
+		constexpr size_t bucket_size = sizeof(uint64_t);
+		if constexpr(counterType == None)
+			return bucket_size;
+		else
+			return bucket_size + sizeof(uint64_t);
+	}
+
 	static constexpr size_t getMaxReportSize() {
 		if constexpr(counterType == None)
 			return 1;
@@ -74,11 +82,10 @@ template <size_t CellBits, CounterType counterType>
 HyperBloomFilter<CellBits, counterType>::HyperBloomFilter(
 	uint32_t memory, double time_threshold, int seed
 ) : counters(nullptr), time_threshold(time_threshold) {
-	uint32_t memsize = memory / sizeof(uint64_t);
-	bucket_num = memsize - memsize % TableNum;
+	bucket_num = memory / getSizePerBucket();
+	bucket_num -= bucket_num % TableNum;
 	buckets = new (align_val_t { 64 }) uint64_t[bucket_num] {};
 	if constexpr(use_counter) {
-		// Use extra memory to store counter, just testing, record it later
 		counters = new (align_val_t { 64 }) uint64_t[bucket_num] {};
 	}
 	mt19937 rng(seed);
