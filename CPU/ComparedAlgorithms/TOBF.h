@@ -21,8 +21,8 @@ class TOBF {
     }
 
 public:
-    TOBF(uint32_t memory, double time_threshold_, int _hash_num, int _seed)
-        : time_threshold(time_threshold_), hash_num(_hash_num) {
+    TOBF(uint32_t memory, double time_threshold, int hash_num, int seed)
+        : time_threshold(time_threshold), hash_num(hash_num), seed(seed) {
         tot = memory / getSizePerValue();
         last_time = new float[tot] {};
         if constexpr (use_counter) {
