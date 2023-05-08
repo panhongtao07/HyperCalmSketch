@@ -163,4 +163,9 @@ int ClockSketch<true>::insert_cnt(int key, double time) {
     return min_cnt;
 }
 
+template <>
+bool ClockSketch<true>::insert(int key, double time) {
+    return insert_cnt(key, time) == 0;
+}
+
 #endif //_CLOCKSKETCH_H_
