@@ -56,14 +56,15 @@ tuple<int, int> single_test(
 }
 
 void large_hit_test(const vector<Record>& input) {
-    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
-    groundtruth::item_count(input);
     timespec start_time, end_time;
     uint64_t time_ns;
+    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
+    groundtruth::item_count(input);
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     auto item_batches = groundtruth::item_batches(input, BATCH_TIME, BATCH_SIZE_LIMIT);
     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9;
+    time_ns += end_time.tv_nsec - start_time.tv_nsec;
     printf("groundtruth time:\t %f s\n", time_ns / 1e9);
     int total_count = 0;
     for (auto& [key, batches] : item_batches)
@@ -76,6 +77,8 @@ void large_hit_test(const vector<Record>& input) {
         tuple<int, int> res;
         if (sketchName == 1)
             res = single_test(HyperBloomFilter(memory, BATCH_TIME, t), input, item_batches);
+        else if (sketchName == 2)
+            res = single_test(ClockSketch<true>(memory, BATCH_TIME, t), input, item_batches);
         else if (sketchName == 3)
             res = single_test(TOBF<true>(memory, BATCH_TIME, 4, t), input, item_batches);
         else if (sketchName == 4)
@@ -87,7 +90,8 @@ void large_hit_test(const vector<Record>& input) {
     printf("---------------------------------------------\n");
     clock_gettime(CLOCK_MONOTONIC, &end_time);
     printf("Results:\n");
-    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9;
+    time_ns += end_time.tv_nsec - start_time.tv_nsec;
     printf("Algorithm time:\t %f s\n", time_ns / 1e9);
     printf("Average Speed:\t %f M/s\n", 1e3 * input.size() * repeat_time / time_ns);
     auto recall = 1.0 * correct_count / total_count / repeat_time;
@@ -102,7 +106,7 @@ void large_hit_test(const vector<Record>& input) {
 }
 
 extern void ParseArgs(int argc, char** argv);
-extern vector<pair<uint32_t, float>> load_data(const string& fileName);
+extern vector<Record> load_data(const string& fileName);
 
 int main(int argc, char** argv) {
     ParseArgs(argc, argv);

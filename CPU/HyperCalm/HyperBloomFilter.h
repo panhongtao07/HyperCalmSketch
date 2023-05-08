@@ -26,18 +26,28 @@ enum CounterType {
 // HyperBloomFilter is a time-sensitive variant of Bloom Filter.
 template <size_t CellBits = 2, CounterType counterType = SyncWithBucket>
 class HyperBloomFilter {
-	static constexpr size_t counter_type = counterType;
-	static constexpr size_t CellPerBucket = sizeof(uint64_t) * 8 / CellBits;
-	static constexpr uint64_t CellMask = (1 << CellBits) - 1;
+protected:
 	static constexpr size_t TableNum = 8;
+
+public:
+	uint64_t* buckets;
+	uint64_t* counters;
+	double time_threshold;
+	uint32_t bucket_num;
+	uint32_t seeds[TableNum + 1];
+
+protected:
+	static constexpr size_t counter_type = counterType;
+	static constexpr size_t CellPerBucket = sizeof(*buckets) * 8 / CellBits;
+	static constexpr uint64_t CellMask = (1 << CellBits) - 1;
 	static_assert(kStateNum + 1 <= (1 << CellBits));
 
 	static constexpr size_t getSizePerBucket() {
-		constexpr size_t bucket_size = sizeof(uint64_t);
+		constexpr size_t bucket_size = sizeof(*buckets);
 		if constexpr(counterType == None)
 			return bucket_size;
 		else
-			return bucket_size + sizeof(uint64_t);
+			return bucket_size + sizeof(*counters);
 	}
 
 	static constexpr size_t getMaxReportSize() {
@@ -48,18 +58,16 @@ class HyperBloomFilter {
 		else
 			return CellMask + 1;
 	}
+
 public:
-	uint64_t* buckets;
-	uint64_t* counters;
-	double time_threshold;
-	uint32_t bucket_num;
-	uint32_t seeds[TableNum + 1];
 #ifdef SIMD
 	static constexpr bool use_simd = true;
 #else
 	static constexpr bool use_simd = false;
 #endif
 	static constexpr bool use_counter = counterType != None;
+
+    /// @brief The maximum report size.
 	static constexpr size_t MaxReportSize = getMaxReportSize();
 
 	HyperBloomFilter(uint32_t memory, double time_threshold, int seed = 123);
@@ -68,7 +76,13 @@ public:
 		delete[] counters;
 	}
 
+    /// @brief insert the item and return batch size excluding current item.
+    /// @param key the key of the item
+    /// @param time current timestamp
+    /// @attention report size is limited by MaxReportSize @see HyperBloomFilter::MaxReportSize
+    /// @return the item count of the batch, 0 if current item is new.
 	int insert_cnt(int key, double time);
+	/// @brief insert the item and return whether it's new.
 	bool insert(int key, double time);
 
 private:
@@ -84,11 +98,11 @@ HyperBloomFilter<CellBits, counterType>::HyperBloomFilter(
 ) : counters(nullptr), time_threshold(time_threshold) {
 	bucket_num = memory / getSizePerBucket();
 	bucket_num -= bucket_num % TableNum;
-	buckets = new (align_val_t { 64 }) uint64_t[bucket_num] {};
+	buckets = new (std::align_val_t { 64 }) uint64_t[bucket_num] {};
 	if constexpr(use_counter) {
-		counters = new (align_val_t { 64 }) uint64_t[bucket_num] {};
+		counters = new (std::align_val_t { 64 }) uint64_t[bucket_num] {};
 	}
-	mt19937 rng(seed);
+	std::mt19937 rng(seed);
 	for (int i = 0; i <= TableNum; ++i) {
 		seeds[i] = rng();
 	}
