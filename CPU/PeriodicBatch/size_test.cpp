@@ -9,6 +9,7 @@
 using namespace std;
 
 #include "../HyperCalm/HyperCalm.h"
+#include "../ComparedAlgorithms/ClockUSS.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
 using namespace groundtruth::type_info;
@@ -31,7 +32,7 @@ void periodic_size_test(
     auto check = [&] (auto sketch) {
         for (auto &[key, time] : input) {
             if constexpr (use_counter)
-                sketch.insert_filter<BatchSize>(key, time);
+                sketch.template insert_filter<BatchSize>(key, time);
             else
                 sketch.insert(key, time);
         }
@@ -48,7 +49,7 @@ void periodic_size_test(
                 sre += diff / double(ans[j].second);
             }
         }
-    }
+    };
     for (int t = 0; t < repeat_time; ++t) {
         if (sketchName == 1)
             check(HyperCalm(BATCH_TIME, UNIT_TIME, memory, t));
