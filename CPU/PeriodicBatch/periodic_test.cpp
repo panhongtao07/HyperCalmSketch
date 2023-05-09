@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <ctime>
+#include <iostream>
 #include <vector>
 
 #include "params.h"
@@ -11,12 +12,12 @@ using namespace std;
 #include "../HyperCalm/HyperCalm.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
-using PeriodicKey = pair<int, int16_t>;
+using namespace groundtruth::type_info;
 
 template <typename Sketch>
 tuple<int, long long, double> single_test(
     Sketch&& sketch,
-    const vector<pair<uint32_t, float>>& input,
+    const vector<Record>& input,
     const vector<pair<PeriodicKey, int>>& ans
 ) {
     int corret_count = 0;
@@ -46,14 +47,10 @@ void periodic_test(const vector<pair<uint32_t, float>>& input) {
     groundtruth::item_count(input);
     auto batches = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT).first;
     auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
-    printf("BATCH_TIME = %f\n", BATCH_TIME);
-    printf("UNIT_TIME = %f\n", UNIT_TIME);
-    printf("---------------------------------------------\n");
-    if (sketchName == 1) {
-        puts("Test HyperCalm");
-    } else {
-        puts("Test Clock+USS");
-    }
+    cout << "BATCH_TIME = " << BATCH_TIME << endl;
+    cout << "UNIT_TIME = " << UNIT_TIME << endl;
+    cout << "---------------------------------------------" << endl;
+    printName(sketchName);
     sort(ans.begin(), ans.end());
     int corret_count = 0;
     double sae = 0, sre = 0;
@@ -73,12 +70,10 @@ void periodic_test(const vector<pair<uint32_t, float>>& input) {
     uint64_t time_ns =
         uint64_t(end_time.tv_sec - start_time.tv_sec) * 1000000000 +
         (end_time.tv_nsec - start_time.tv_nsec);
-    printf("---------------------------------------------\n");
-    printf("Results:\n");
-    printf("Average Speed:\t %f M/s\n",
-           1e3 * input.size() * repeat_time / time_ns);
-    printf("Recall Rate:\t %f\n",
-           1.0 * corret_count / ans.size() / repeat_time);
-    printf("AAE:\t\t %f\n", sae / corret_count);
-    printf("ARE:\t\t %f\n", sre / corret_count);
+    cout << "---------------------------------------------" << endl;
+    cout << "Results:" << endl;
+    cout << "Average Speed:\t " << 1e3 * input.size() * repeat_time / time_ns << " M/s" << endl;
+    cout << "Recall Rate:\t " << 1.0 * corret_count / ans.size() / repeat_time << endl;
+    cout << "AAE:\t\t " << sae / corret_count << endl;
+    cout << "ARE:\t\t " << sre / corret_count << endl;
 }

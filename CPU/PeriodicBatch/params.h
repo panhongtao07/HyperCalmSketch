@@ -9,4 +9,14 @@ inline double BATCH_TIME, UNIT_TIME;
 inline bool verbose = false;
 inline int repeat_time = 1, TOPK_THRESHOLD = 200, BATCH_SIZE_LIMIT = 1, memory = 5e5;
 
+#include <iostream>
+
+static void printName(int sketchName) {
+    if (sketchName == 1) {
+        std::cout << "Test HyperCalm" << std::endl;
+    } else {
+        std::cout << "Test Clock+USS" << std::endl;
+    }
+}
+
 #endif
