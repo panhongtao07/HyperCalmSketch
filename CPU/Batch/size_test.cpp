@@ -6,24 +6,25 @@
 using namespace std;
 
 #include "../HyperCalm/HyperBloomFilter.h"
+#include "../ComparedAlgorithms/ClockSketch.h"
+#include "../ComparedAlgorithms/SWAMP.h"
+#include "../ComparedAlgorithms/TOBF.h"
 #include "../ComparedAlgorithms/groundtruth.h"
 
 using groundtruth::Record;
 
-void size_test(const vector<Record>& input) {
-    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
-    auto realtime_sizes = groundtruth::realtime_size(input, BATCH_TIME);
-    if (sketchName != 1) {
-        printf("Test is not implemented");
-    }
+template <typename Algorithm>
+void size_test(
+    const vector<Record>& input,
+    const vector<int>& realtime_sizes,
+    Algorithm&& algo
+) {
+    constexpr bool can_overflow = true;
     constexpr int cellbits = 2;
-    constexpr int overflow_limit = 1 << cellbits;
-    HyperBloomFilter<cellbits, HyperBF::FastSync> hbf(memory, BATCH_TIME, 0);
-    printf("---------------------------------------------\n");
-    printf("Realtime size test\n");
+    constexpr int overflow_limit = (1 << cellbits) + can_overflow;
     double ARE = 0, AAE = 0;
     int acc_cnt = 0, overflow_cnt = 0, overflow_acc = 0;
-    constexpr int small_thereshold = 1, large_thereshold = overflow_limit;
+    constexpr int small_thereshold = 1, large_thereshold = overflow_limit - can_overflow;
     int small = 0, middle = 0, large = 0;
     double sARE = 0, mARE = 0, lARE = 0;
     long long sTAE = 0, mTAE = 0, lTAE = 0;
@@ -32,7 +33,7 @@ void size_test(const vector<Record>& input) {
     for (int i = 0; i < input.size(); ++i) {
         auto &[key, time] = input[i];
         int raw_real_size = realtime_sizes[i];
-        int size = hbf.insert_cnt(key, time) + 1;
+        int size = algo.insert_cnt(key, time) + 1;
         int real_size = min(raw_real_size, overflow_limit);
         int diff = abs(size - real_size);
         double relative_error = double(diff) / real_size;
@@ -67,6 +68,8 @@ void size_test(const vector<Record>& input) {
     sARE /= small;
     mARE /= middle;
     lARE /= large;
+    printf("---------------------------------------------\n");
+    printf("Realtime size test\n");
     printf("Accuracy: %.2lf%%, No overflow: %.2lf%%, Overflow: %.2lf%%\n",
            double(acc_cnt) / input.size() * 100,
            double(acc_cnt - overflow_acc) / (input.size() - overflow_cnt) * 100,
@@ -93,7 +96,19 @@ int main(int argc, char** argv) {
     printf("---------------------------------------------\n");
     auto input = load_data(fileName);
     printf("---------------------------------------------\n");
+    printName(sketchName);
+    printf("---------------------------------------------\n");
     groundtruth::item_count(input);
-    size_test(input);
+    groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
+    auto realtime_sizes = groundtruth::realtime_size(input, BATCH_TIME);
+    int seed = 0;
+    if (sketchName == 1)
+        size_test(input, realtime_sizes, HyperBloomFilter(memory, BATCH_TIME, seed));
+    else if (sketchName == 2)
+        size_test(input, realtime_sizes, ClockSketch<true>(memory, BATCH_TIME, seed));
+    else if (sketchName == 3)
+        size_test(input, realtime_sizes, TOBF<true>(memory, BATCH_TIME, 4, seed));
+    else if (sketchName == 4)
+        size_test(input, realtime_sizes, SWAMP<int, float, true>(memory, BATCH_TIME));
     printf("---------------------------------------------\n");
 }
