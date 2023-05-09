@@ -33,7 +33,7 @@ void size_test(
     for (int i = 0; i < input.size(); ++i) {
         auto &[key, time] = input[i];
         int raw_real_size = realtime_sizes[i];
-        int size = algo.insert_cnt(key, time) + 1;
+        int size = min(algo.insert_cnt(key, time) + 1, overflow_limit);
         int real_size = min(raw_real_size, overflow_limit);
         int diff = abs(size - real_size);
         double relative_error = double(diff) / real_size;
