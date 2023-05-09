@@ -47,15 +47,7 @@ void hit_test(const vector<Record>& input) {
 	groundtruth::item_count(input);
 	auto [objects, batches] = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT);
 	printf("---------------------------------------------\n");
-	if (sketchName == 1) {
-		puts("Test Hyper Bloom filter");
-	} else if (sketchName == 2) {
-		puts("Test Clock-Sketch");
-	} else if (sketchName == 3) {
-		puts("Test Time-Out Bloom filter");
-	} else if (sketchName == 4) {
-		puts("Test SWAMP");
-	}
+	printName(sketchName);
 	int object_count = 0, correct_count = 0, tot_our_size = 0;
 	timespec start_time, end_time;
 	clock_gettime(CLOCK_MONOTONIC, &start_time);

@@ -15,18 +15,6 @@ using namespace std;
 
 using namespace groundtruth::type_info;
 
-void printName(int sketchName) {
-    if (sketchName == 1) {
-        printf("Test Hyper Bloom filter\n");
-    } else if (sketchName == 2) {
-        printf("Test Clock-Sketch\n");
-    } else if (sketchName == 3) {
-        printf("Test Time-Out Bloom filter\n");
-    } else if (sketchName == 4) {
-        printf("Test SWAMP\n");
-    } else assert(false);
-}
-
 template <typename Sketch>
 tuple<int, int> single_test(
     Sketch&& sketch,
