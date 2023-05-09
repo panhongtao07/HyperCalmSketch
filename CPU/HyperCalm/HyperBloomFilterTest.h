@@ -12,7 +12,8 @@ namespace HyperBF {
 // meanwhile also useful for understanding the original algorithm.
 template <size_t CellBits,
           size_t CounterCellBits = CellBits,
-          size_t _MaxReportSize = (1 << CounterCellBits),
+          bool UseHeader = true,
+          size_t _MaxReportSize = ((1 << CounterCellBits) - !UseHeader),
           size_t _CellPerBucket = sizeof(uint64_t) * 8 / CellBits>
 class TestModeHyperBF {
     static constexpr size_t CellPerBucket = _CellPerBucket;
@@ -26,7 +27,9 @@ public:
     static constexpr size_t MaxReportSize = _MaxReportSize;
 
     TestModeHyperBF(uint32_t memory, double time_threshold, int seed = 123) :
-        time_threshold(time_threshold), bucket_num(memory / sizeof(uint64_t)) {
+        time_threshold(time_threshold), bucket_num(
+            memory / sizeof(uint64_t) * CellBits / (CounterCellBits + CellBits)) {
+        bucket_num -= bucket_num % TableNum;
         buckets = new (align_val_t { 64 }) uint64_t[bucket_num * CellPerBucket] {};
         counters = new (align_val_t { 64 }) uint64_t[bucket_num * CellPerBucket] {};
         mt19937 rng(seed);
@@ -63,18 +66,24 @@ public:
                     counters[bucket_pos + j] = 0;
                 }
             }
+            bool with_header = false;
+            if constexpr (UseHeader)
+                with_header = buckets[bucket_pos + cell_pos];
             buckets[bucket_pos + cell_pos] = now_tag;
             int cnt = counters[bucket_pos + cell_pos];
-            min_cnt = min(min_cnt, cnt);
+            min_cnt = min(min_cnt, cnt + with_header);
             if constexpr (CM2Count) {
                 int delta = CalculatePos(key, i + 1) % 2 ? 1 : -1;
                 cnts.push_back(cnt * delta);
                 cnt += delta;
-                cnt = max(0, min(cnt, int(MaxReportSize)));
+                cnt = max(-int(MaxReportSize), min(cnt, int(MaxReportSize)));
                 counters[bucket_pos + cell_pos] = cnt;
                 continue;
             }
-            if (cnt != MaxReportSize) {
+            if constexpr (UseHeader) {
+                if (!with_header) continue;
+            }
+            if (cnt + with_header != MaxReportSize) {
                 ++counters[bucket_pos + cell_pos];
             }
         }
