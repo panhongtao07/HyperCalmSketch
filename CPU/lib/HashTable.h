@@ -1,6 +1,8 @@
 #ifndef _HASHTABLE_H_
 #define _HASHTABLE_H_
 
+#include <cassert>
+
 #define Mod(x) ((x%n+n)%n)
 template<typename key_t, typename val_t>
 class Hash_table{
