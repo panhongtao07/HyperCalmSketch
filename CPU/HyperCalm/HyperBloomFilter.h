@@ -142,13 +142,12 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
         cache &= mask;
         #define _bits(i) ((CalculatePos(key, i) % CellPerBucket) * CellBits)
         __m512i move_bits = _generate_vector(_bits);
-        __m512i old_tags = (cache >> move_bits); // vectorized shift
-        old_tags &= CellMask; // broadcast by default
+        __m512i old_tags = cache & (CellMask << move_bits); // broadcast and vectorize
         if (_mm512_reduce_min_epu64(old_tags) == 0) {
             min_cnt = 0;
         }
         __m512i now_tags = _generate_vector(_now_tag);
-        *x = cache ^ (now_tags << move_bits); // vectorized shift
+        *x = cache ^ old_tags ^ (now_tags << move_bits); // vectorized shift
         #undef _bits
         #undef _now_tag
         #undef _tag_idx

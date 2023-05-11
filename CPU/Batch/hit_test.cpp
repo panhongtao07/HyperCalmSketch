@@ -14,7 +14,8 @@ using namespace std;
 
 using namespace groundtruth::type_info;
 
-vector<Index> insert_result(auto sketch, const vector<Record>& input) {
+template <typename Sketch>
+vector<Index> insert_result(Sketch&& sketch, const vector<Record>& input) {
     vector<int> res;
     for (int i = 0; i < input.size(); ++i) {
         auto& [tkey, ttime] = input[i];
@@ -22,6 +23,7 @@ vector<Index> insert_result(auto sketch, const vector<Record>& input) {
             res.push_back(i);
         }
     }
+	return res;
 }
 
 tuple<int, int> single_hit_test(
