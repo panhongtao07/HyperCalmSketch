@@ -119,31 +119,44 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 	int first_bucket_pos = CalculatePos(key, TableNum) % bucket_num & ~(TableNum - 1);
 	int min_cnt = MaxReportSize, max_cnt = 0;
 	if constexpr(use_simd) {
-		__m512i* x = (__m512i*)(buckets + first_bucket_pos);
-		uint64_t b[8];
-		for (int i = 0; i < 8; ++i) {
-			int now_tag = int(time / time_threshold + 1.0 * i / TableNum) % 3 + 1;
-			int ban_tag_m1 = now_tag % 3;
-			b[7 - i] = STATE_MASKS[ban_tag_m1];
+		static_assert(TableNum % 8 == 0);
+		#define _generate_vector(gen) _mm512_set_epi64( \
+			gen(7), gen(6), gen(5), gen(4), \
+			gen(3), gen(2), gen(1), gen(0) \
+		)
+		// Normally, we don't need to take a loop here, indent is unnecessary.
+		// For readability, we use a new line to separate the loop body.
+		for (int batch_start = 0; batch_start < TableNum; batch_start += 8) {
+
+		double time_base = time / time_threshold + 1.0 * batch_start / TableNum;
+		#define _now_tag(i) (int(time_base + 1.0 * i / TableNum) % 3 + 1)
+		#define _tag_idx(i) (_now_tag(i) % 3)
+		#define _msk(i) (STATE_MASKS[_tag_idx(i)])
+		__m512i* x = (__m512i*)(buckets + first_bucket_pos + batch_start);
+		__m512i cache = *x;
+		__m512i is_ban_bits = _generate_vector(_msk);
+		is_ban_bits ^= cache;
+		is_ban_bits |= is_ban_bits >> 1;
+		is_ban_bits &= ODD_BIT_MASK; // broadcast by default
+		__m512i mask = is_ban_bits | (is_ban_bits << 1);
+		cache &= mask;
+		#define _bits(i) ((CalculatePos(key, i) % CellPerBucket) * CellBits)
+		__m512i move_bits = _generate_vector(_bits);
+		__m512i old_tags = (cache >> move_bits); // vectorized shift
+		old_tags &= CellMask; // broadcast by default
+		if (_mm512_reduce_min_epu64(old_tags) == 0) {
+			min_cnt = 0;
 		}
-		__m512i is_ban_bits = _mm512_set_epi64(b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
-		is_ban_bits = _mm512_xor_epi64(is_ban_bits, *x);
-		is_ban_bits = _mm512_or_epi64(is_ban_bits, _mm512_srli_epi64(is_ban_bits, 1));
-		is_ban_bits = _mm512_and_epi64(is_ban_bits, _mm512_set1_epi64(ODD_BIT_MASK));
-		__m512i mask = _mm512_or_epi64(is_ban_bits, _mm512_slli_epi64(is_ban_bits, 1));
-		*x = _mm512_and_epi64(*x, mask);
+		__m512i now_tags = _generate_vector(_now_tag);
+		*x = cache ^ (now_tags << move_bits); // vectorized shift
+		#undef _bits
+		#undef _now_tag
+		#undef _tag_idx
+		#undef _msk
+
+		} // end of loop
+		#undef _generate_vector
 		// TODO: support counter
-		for (int i = 0; i < TableNum; ++i) {
-			int cell_pos = CalculatePos(key, i) % CellPerBucket;
-			int bucket_pos = (first_bucket_pos + i);
-
-			int now_tag = int(time / time_threshold + 1.0 * i / TableNum) % 3 + 1;
-
-			int old_tag = (buckets[bucket_pos] >> (CellBits * cell_pos)) & CellMask;
-			if (old_tag == 0)
-				min_cnt = 0;
-			buckets[bucket_pos] ^= uint64_t(now_tag ^ old_tag) << (CellBits * cell_pos);
-		}
 	} else {
 		for (int i = 0; i < TableNum; ++i) {
 			int cell_pos = CalculatePos(key, i) % CellPerBucket;
