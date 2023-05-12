@@ -18,8 +18,8 @@ template <typename Sketch>
 vector<Index> insert_result(Sketch&& sketch, const vector<Record>& input) {
     vector<int> res;
     for (int i = 0; i < input.size(); ++i) {
-        auto& [tkey, ttime] = input[i];
-        if (sketch.insert(tkey, ttime)) {
+        auto& [key, time] = input[i];
+        if (sketch.insert(key, time)) {
             res.push_back(i);
         }
     }
@@ -81,6 +81,7 @@ void hit_test(const vector<Record>& input) {
     auto recall = 1.0 * object_count / objects.size() / repeat_time;
     auto precision = 1.0 * correct_count / tot_our_size / repeat_time;
     printf("Results:\n");
+    printf("Algorithm time:\t %f s\n", time_ns / 1e9);
     printf("Average Speed:\t %f M/s\n", 1e3 * input.size() * repeat_time / time_ns);
     printf("Recall Rate:\t %f\n", recall);
     printf("Precision Rate:\t %f\n", precision);

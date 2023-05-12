@@ -142,12 +142,28 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
         cache &= mask;
         #define _bits(i) ((CalculatePos(key, i) % CellPerBucket) * CellBits)
         __m512i move_bits = _generate_vector(_bits);
-        __m512i old_tags = cache & (CellMask << move_bits); // broadcast and vectorize
-        if (_mm512_reduce_min_epu64(old_tags) == 0) {
-            min_cnt = 0;
-        }
         __m512i now_tags = _generate_vector(_now_tag);
-        *x = cache ^ old_tags ^ (now_tags << move_bits); // vectorized shift
+        if constexpr(counter_type == None) {
+            __m512i old_tags = cache & (CellMask << move_bits); // broadcast and vectorize
+            if (_mm512_reduce_min_epu64(old_tags) == 0)
+                min_cnt = 0;
+            *x = cache ^ old_tags ^ (now_tags << move_bits); // vectorized shift
+        } else {
+            cache &= ~(CellMask << move_bits);
+            cache |= now_tags << move_bits;
+            *x = cache;
+
+            x = (__m512i*)(counters + first_bucket_pos + batch_start);
+            cache = *x;
+            cache &= mask;
+            cache = _mm512_rorv_epi64(cache, move_bits);
+            __m512i cnts = cache & CellMask;
+            min_cnt = std::min(min_cnt, int(_mm512_reduce_min_epu64(cnts)));
+            __mmask8 add_mask = _mm512_cmpneq_epi64_mask(cnts, _mm512_set1_epi64(CellMask));
+            __m512i new_cnts = _mm512_mask_add_epi64(cnts, add_mask,
+                                                     cnts, _mm512_set1_epi64(1));
+            *x = _mm512_rolv_epi64(cache ^ cnts ^ new_cnts, move_bits);
+        }
         #undef _bits
         #undef _now_tag
         #undef _tag_idx
@@ -155,7 +171,6 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 
         } // end of loop
         #undef _generate_vector
-        // TODO: support counter
     } else {
         for (int i = 0; i < TableNum; ++i) {
             int cell_pos = CalculatePos(key, i) % CellPerBucket;
@@ -201,7 +216,7 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
                     }
                 }
                 int cnt = (counter >> move_bits) & CellMask;
-                min_cnt = min(min_cnt, cnt + with_header); // add the header
+                min_cnt = std::min(min_cnt, cnt + with_header); // add the header
                 if (cnt != CellMask) {
                     counter ^= uint64_t(cnt + 1 ^ cnt) << move_bits;
                 }
