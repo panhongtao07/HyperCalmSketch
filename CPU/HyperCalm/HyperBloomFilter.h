@@ -120,6 +120,8 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
     int min_cnt = MaxReportSize, max_cnt = 0;
     if constexpr(use_simd) {
         static_assert(TableNum % 8 == 0);
+        #define _update_cnt(cnt, i) if constexpr (TableNum == 8) \
+            { cnt = (i); } else { cnt = std::min(cnt, (i)); }
         #define _generate_vector(gen) _mm512_set_epi64( \
             gen(7), gen(6), gen(5), gen(4), \
             gen(3), gen(2), gen(1), gen(0) \
@@ -148,7 +150,7 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
             if (_mm512_reduce_min_epu64(old_tags) == 0)
                 min_cnt = 0;
             *x = cache ^ old_tags ^ (now_tags << move_bits); // vectorized shift
-        } else {
+        } else if constexpr(counter_type == FastSync) {
             cache &= ~(CellMask << move_bits);
             cache |= now_tags << move_bits;
             *x = cache;
@@ -158,10 +160,26 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
             cache &= mask;
             cache = _mm512_rorv_epi64(cache, move_bits);
             __m512i cnts = cache & CellMask;
-            min_cnt = std::min(min_cnt, int(_mm512_reduce_min_epu64(cnts)));
+            _update_cnt(min_cnt, int(_mm512_reduce_min_epu64(cnts)));
             __mmask8 add_mask = _mm512_cmpneq_epi64_mask(cnts, _mm512_set1_epi64(CellMask));
             __m512i new_cnts = _mm512_mask_add_epi64(cnts, add_mask,
                                                      cnts, _mm512_set1_epi64(1));
+            *x = _mm512_rolv_epi64(cache ^ cnts ^ new_cnts, move_bits);
+        } else {
+            __m512i old_tags = cache & (CellMask << move_bits);
+            __mmask8 with_header = _mm512_cmpneq_epi64_mask(old_tags, _mm512_set1_epi64(0));
+            *x = cache ^ old_tags ^ (now_tags << move_bits);
+
+            x = (__m512i*)(counters + first_bucket_pos + batch_start);
+            cache = *x;
+            cache &= mask;
+            cache = _mm512_rorv_epi64(cache, move_bits);
+            __m512i cnts = cache & CellMask;
+            __m512i real_cnts = _mm512_maskz_add_epi64(
+                with_header, cache, _mm512_set1_epi64(1));
+            _update_cnt(min_cnt, int(_mm512_reduce_min_epu64(real_cnts)));
+            __mmask8 add_mask = _mm512_cmpneq_epi64_mask(cnts, _mm512_set1_epi64(CellMask));
+            __m512i new_cnts = _mm512_mask_set1_epi64(cnts, add_mask, CellMask);
             *x = _mm512_rolv_epi64(cache ^ cnts ^ new_cnts, move_bits);
         }
         #undef _bits
@@ -171,6 +189,7 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
 
         } // end of loop
         #undef _generate_vector
+        #undef _update_cnt
     } else {
         for (int i = 0; i < TableNum; ++i) {
             int cell_pos = CalculatePos(key, i) % CellPerBucket;
