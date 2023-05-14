@@ -11,12 +11,22 @@ private:
     UnbiasedSpaceSaving uss;
     _ClockSketch cs;
 
-public:
-#define csmem min(memory / 2, 50000)
-#define sz max(1, memory / 1000)
-    ClockUSS(double time_threshold, double unit_time,
-        int memory, int seed): uss(time_threshold, unit_time, memory - csmem, sz, seed), cs(csmem, time_threshold, seed) {
+    inline int suggestMemory(int memory, double time_threshold) {
+        int suggest_max;
+        if (time_threshold < 0.001) {
+            suggest_max = 50000;
+        } else {
+            suggest_max = 2000;
+        }
+        return min(memory / 2, suggest_max);
     }
+
+public:
+#define csmem suggestMemory(memory, time_threshold)
+#define sz max(1, memory / 1000)
+    ClockUSS(double time_threshold, double unit_time, int memory, int seed)
+        : uss(time_threshold, unit_time, memory - csmem, sz, seed),
+          cs(csmem, time_threshold, seed) {}
 #undef sz
 #undef csmem
     void insert(int key, double time) {

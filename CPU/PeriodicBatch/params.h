@@ -13,9 +13,9 @@ inline int repeat_time = 1, TOPK_THRESHOLD = 200, BATCH_SIZE_LIMIT = 1, memory =
 
 static void printName(int sketchName) {
     if (sketchName == 1) {
-        std::cout << "Test HyperCalm" << std::endl;
+        std::cout << "Test HyperCalm\n";
     } else {
-        std::cout << "Test Clock+USS" << std::endl;
+        std::cout << "Test Clock+USS\n";
     }
 }
 

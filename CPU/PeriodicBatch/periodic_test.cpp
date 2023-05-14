@@ -47,9 +47,9 @@ void periodic_test(const vector<pair<uint32_t, float>>& input) {
     groundtruth::item_count(input);
     auto batches = groundtruth::batch(input, BATCH_TIME, BATCH_SIZE_LIMIT).first;
     auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
-    cout << "BATCH_TIME = " << BATCH_TIME << endl;
-    cout << "UNIT_TIME = " << UNIT_TIME << endl;
-    cout << "---------------------------------------------" << endl;
+    printf("BATCH_TIME = %f, UNIT_TIME = %f\n", BATCH_TIME, UNIT_TIME);
+    printf("Total Memory: %d B, Top K: %d\n", memory, TOPK_THRESHOLD);
+    cout << "---------------------------------------------" << '\n';
     printName(sketchName);
     sort(ans.begin(), ans.end());
     int corret_count = 0;

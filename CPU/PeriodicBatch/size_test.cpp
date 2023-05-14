@@ -27,9 +27,10 @@ void periodic_size_test(
     vector<pair<PeriodicKey, int>> our;
     int corret_count = 0;
     double sae = 0, sre = 0;
-    timespec start_time, end_time;
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
+    uint64_t time_ns = 0;
     auto check = [&] (auto sketch) {
+        timespec start, end;
+        clock_gettime(CLOCK_MONOTONIC, &start);
         for (auto &[key, time] : input) {
             if constexpr (use_counter)
                 sketch.template insert_filter<BatchSize>(key, time);
@@ -37,6 +38,8 @@ void periodic_size_test(
                 sketch.insert(key, time);
         }
         our = sketch.get_top_k(TOPK_THRESHOLD);
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        time_ns += (end.tv_sec - start.tv_sec) * 1e9 + (end.tv_nsec - start.tv_nsec);
         sort(our.begin(), our.end());
         int j = 0;
         for (auto &[key, freq] : our) {
@@ -56,9 +59,6 @@ void periodic_size_test(
         else if (sketchName == 2)
             check(ClockUSS<use_counter>(BATCH_TIME, UNIT_TIME, memory, t));
     }
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    uint64_t time_ns = (end_time.tv_sec - start_time.tv_sec) * 1e9;
-    time_ns += (end_time.tv_nsec - start_time.tv_nsec);
     cout << "---------------------------------------------" << endl;
     if constexpr (use_counter)
         cout << "Results with counter:" << endl;
@@ -75,17 +75,16 @@ extern vector<Record> load_data(const string& fileName);
 
 int main(int argc, char** argv) {
     ParseArgs(argc, argv);
-    cout << "---------------------------------------------" << endl;
+    cout << "---------------------------------------------" << '\n';
     auto input = load_data(fileName);
-    cout << "---------------------------------------------" << endl;
+    cout << "---------------------------------------------" << '\n';
     groundtruth::item_count(input);
     groundtruth::adjust_params(input, BATCH_TIME, UNIT_TIME);
     auto batches = groundtruth::batch(input, BATCH_TIME, BatchSize).first;
     auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
-    cout << "Answer batchsize = " << BatchSize << endl;
-    cout << "BATCH_TIME = " << BATCH_TIME << endl;
-    cout << "UNIT_TIME = " << UNIT_TIME << endl;
-    cout << "---------------------------------------------" << endl;
+    printf("BATCH_TIME = %f, UNIT_TIME = %f\n", BATCH_TIME, UNIT_TIME);
+    printf("Total Memory: %d B, Top K: %d\n", memory, TOPK_THRESHOLD);
+    cout << "---------------------------------------------" << '\n';
     periodic_size_test<true>(input, ans);
     // cout << "---------------------------------------------" << endl;
     // periodic_size_test<false>(input, ans);

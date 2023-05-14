@@ -46,7 +46,7 @@ public:
         for (int i = 0; i <= TableNum; ++i) {
             seeds[i] = rng();
         }
-        printf(" %d\t (Number of arrays in Clock-Sketch)\n",bucket_num);
+        printf("%d\t (Number of arrays in Clock-Sketch)\n", bucket_num);
     }
 
     ~ClockSketch() {
