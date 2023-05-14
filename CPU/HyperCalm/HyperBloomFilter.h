@@ -178,8 +178,8 @@ int HyperBloomFilter<2>::insert_cnt(int key, double time) {
             __m512i real_cnts = _mm512_maskz_add_epi64(
                 with_header, cnts, _mm512_set1_epi64(1));
             _update_cnt(min_cnt, int(_mm512_reduce_min_epu64(real_cnts)));
-            __mmask8 add_mask = _mm512_cmpneq_epi64_mask(cnts, _mm512_set1_epi64(CellMask));
-            __m512i new_cnts = _mm512_mask_set1_epi64(cnts, add_mask, CellMask);
+            __mmask8 max_mask = _mm512_cmpeq_epi64_mask(cnts, _mm512_set1_epi64(CellMask));
+            __m512i new_cnts = _mm512_mask_set1_epi64(real_cnts, max_mask, CellMask);
             *x = _mm512_rolv_epi64(cache ^ cnts ^ new_cnts, move_bits);
         }
         #undef _bits
