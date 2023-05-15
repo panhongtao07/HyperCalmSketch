@@ -83,7 +83,11 @@ int main(int argc, char** argv) {
     auto batches = groundtruth::batch(input, BATCH_TIME, BatchSize).first;
     auto ans = groundtruth::topk(input, batches, UNIT_TIME, TOPK_THRESHOLD);
     printf("BATCH_TIME = %f, UNIT_TIME = %f\n", BATCH_TIME, UNIT_TIME);
-    printf("Total Memory: %d B, Top K: %d\n", memory, TOPK_THRESHOLD);
+    if (memory > 1000)
+        cout << "Total Memory: " << memory / 1000. << " KB";
+    else
+        cout << "Total Memory: " << memory << " B";
+    cout << ", Top K: " << TOPK_THRESHOLD << '\n';
     cout << "---------------------------------------------" << '\n';
     periodic_size_test<true>(input, ans);
     // cout << "---------------------------------------------" << endl;

@@ -13,7 +13,7 @@ private:
 
     inline int suggestMemory(int memory, double time_threshold) {
         int suggest_max;
-        if (time_threshold < 0.001) {
+        if (time_threshold > 0.001) {
             suggest_max = 50000;
         } else {
             suggest_max = 2000;
