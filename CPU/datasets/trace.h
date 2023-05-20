@@ -4,10 +4,14 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <iostream>
 #include <vector>
 #include <utility>
 
-std::vector<std::pair<uint32_t, float>> loadCAIDA(const char *filename = "./CAIDA.dat") {
+using Record = std::pair<uint32_t, float>;
+
+std::vector<Record> loadCAIDA(const char *filename = "./CAIDA.dat") {
     printf("Open %s \n", filename);
     FILE *pf = fopen(filename, "rb");
     if (!pf) {
@@ -15,7 +19,7 @@ std::vector<std::pair<uint32_t, float>> loadCAIDA(const char *filename = "./CAID
         exit(-1);
     }
 
-    std::vector<std::pair<uint32_t, float>> vec;
+    std::vector<Record> vec;
     double ftime = -1;
     char trace[30];
     while (fread(trace, 1, 21, pf)) {
@@ -23,14 +27,13 @@ std::vector<std::pair<uint32_t, float>> loadCAIDA(const char *filename = "./CAID
         double ttime = *(double *)(trace + 13);
         if (ftime < 0)
             ftime = ttime;
-        vec.push_back(std::pair<uint32_t, float>(tkey, ttime - ftime));
+        vec.emplace_back(tkey, ttime - ftime);
     }
     fclose(pf);
     return vec;
 }
 
-std::vector<std::pair<uint32_t, float>>
-loadCRITEO(const char *filename = "./CRITEO.log") {
+std::vector<Record> loadCRITEO(const char *filename = "./CRITEO.log") {
     printf("Open %s \n", filename);
     FILE *pf = fopen(filename, "rb");
     if (!pf) {
@@ -38,7 +41,7 @@ loadCRITEO(const char *filename = "./CRITEO.log") {
         exit(-1);
     }
 
-    std::vector<std::pair<uint32_t, float>> vec;
+    std::vector<Record> vec;
     char trace[40];
     int ttime = 0;
     while (fscanf(pf, "%s", trace) != EOF) {
@@ -48,5 +51,23 @@ loadCRITEO(const char *filename = "./CRITEO.log") {
     }
     fclose(pf);
     return vec;
+}
+
+std::vector<Record> load_raw_data(const char* fileName) {
+    using namespace std;
+    char buf[20];
+	uint32_t key;
+	float time;
+	long long cnt = 0;
+	fstream fin(fileName, ios::binary | ios::in);
+    vector<Record> input;
+	while (fin.read(buf, sizeof(uint32_t) + sizeof(float))) {
+        key = *(uint32_t*)buf;
+        time = *(float*)(buf + sizeof(uint32_t));
+        input.emplace_back(key, time);
+		if (++cnt % 100000000 == 0)
+            cerr << cnt / 100000000 << "00M" << endl;
+	}
+    return input;
 }
 #endif // _TRACE_H_
