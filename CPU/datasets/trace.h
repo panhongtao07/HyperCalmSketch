@@ -55,6 +55,7 @@ std::vector<Record> loadCRITEO(const char *filename = "./CRITEO.log") {
 
 std::vector<Record> load_raw_data(const char* fileName) {
     using namespace std;
+    cout << "loading raw data from " << fileName << endl;
     char buf[20];
 	uint32_t key;
 	float time;
